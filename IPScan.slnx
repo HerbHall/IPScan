@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IPScan.CLI/IPScan.CLI.csproj" />
+    <Project Path="src/IPScan.Core/IPScan.Core.csproj" />
+    <Project Path="src/IPScan.GUI/IPScan.GUI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IPScan.CLI.Tests/IPScan.CLI.Tests.csproj" />
+    <Project Path="tests/IPScan.Core.Tests/IPScan.Core.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,25 @@
+<Project>
+  <PropertyGroup>
+    <!-- Shared properties for all projects -->
+    <Authors>Herb Hall</Authors>
+    <Company>Herb Hall</Company>
+    <Product>IPScan</Product>
+    <Copyright>Copyright (c) 2026 Herb Hall</Copyright>
+    <RepositoryUrl>https://github.com/HerbHall/IPScan</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Version is set automatically by MinVer based on Git tags -->
+    <!-- Tag format: v1.0.0, v1.2.3, etc. -->
+    <!-- Pre-release versions generated automatically between tags -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>alpha.0</MinVerDefaultPreReleaseIdentifiers>
+  </PropertyGroup>
+
+  <!-- MinVer package for automatic versioning -->
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

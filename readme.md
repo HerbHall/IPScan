@@ -1,20 +1,22 @@
 # IPScan
 
-A cross-platform CLI and GUI tool for discovering and managing HTTP-enabled devices on your local network.
+A Windows CLI and GUI tool for discovering and managing HTTP-enabled devices on your local network.
 
 ## Features
 
-- **Network Discovery** - Scan your local subnet for devices with HTTP interfaces
+- **Auto-Discovery** - Automatically scans for new devices on startup
+- **Port Scanning** - Detects common services (HTTP, HTTPS, SSH, RDP, etc.) on each device
 - **Device Identification** - Automatically detect device types (routers, switches, servers, etc.)
+- **Clickable Links** - Quick access to device web interfaces and services
 - **Credential Management** - Securely store and recall login credentials per device
 - **Dual Interface** - Full functionality via both command line and graphical interface
-- **Cross-Platform** - Runs on Windows, Linux, and Android
+
+## Requirements
+
+- Windows 10 or later
+- .NET 10.0 Runtime
 
 ## Installation
-
-### Prerequisites
-
-- .NET 8.0 or later
 
 ### From Source
 
@@ -33,14 +35,20 @@ Download the latest release from the [Releases](https://github.com/HerbHall/IPSc
 ### Command Line
 
 ```bash
-# Scan the local network
+# Scan for new devices on the local network
 ipscan scan
 
 # Scan a specific subnet
 ipscan scan --subnet 192.168.1.0/24
 
+# Rescan all devices (update existing device info)
+ipscan scan --rescan
+
 # List saved devices
 ipscan list
+
+# Show device details including open ports
+ipscan show <device-name>
 
 # Open a device's web interface
 ipscan open <device-name>
@@ -51,32 +59,44 @@ ipscan --help
 
 ### GUI
 
-Launch the application without arguments to open the graphical interface:
+Launch the GUI application:
 
 ```bash
-ipscan
+ipscan-gui
 ```
+
+Or run from the Start Menu after installation.
 
 Access help documentation via **File > Help** in the menu.
 
 ## Configuration
 
-Configuration files are stored in:
+Configuration and data files are stored in:
 
-- **Windows:** `%APPDATA%\IPScan\`
-- **Linux:** `~/.config/IPScan/`
+```
+%APPDATA%\IPScan\
+├── devices.json      # Saved device information
+└── settings.json     # Application settings
+```
 
 ## Security
 
-Device credentials are encrypted using platform-native secure storage:
-
-- **Windows:** Windows Credential Manager
-- **Linux:** Secret Service API / libsecret
+Device credentials are securely stored using Windows Credential Manager.
 
 ## Building
 
+### Prerequisites
+
+- .NET 10.0 SDK
+- Visual Studio Code (recommended) or Visual Studio 2022
+
+### Build Commands
+
 ```bash
-# Build for current platform
+# Restore dependencies
+dotnet restore
+
+# Build all projects
 dotnet build
 
 # Run tests
@@ -84,6 +104,20 @@ dotnet test
 
 # Publish release build
 dotnet publish -c Release
+```
+
+### Project Structure
+
+```
+IPScan/
+├── src/
+│   ├── IPScan.Core/     # Shared business logic
+│   ├── IPScan.CLI/      # Command line interface
+│   └── IPScan.GUI/      # WPF application
+├── tests/
+│   ├── IPScan.Core.Tests/
+│   └── IPScan.CLI.Tests/
+└── docs/
 ```
 
 ## Contributing
@@ -100,6 +134,9 @@ Contributions are welcome! Please read the [REQUIREMENTS.md](REQUIREMENTS.md) fo
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Tech Stack
 
-- Built with .NET
+- .NET 10.0
+- WPF (Windows Presentation Foundation)
+- SharpPcap for network scanning
+- System.CommandLine for CLI
