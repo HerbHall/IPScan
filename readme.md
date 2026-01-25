@@ -19,14 +19,14 @@ A cross-platform CLI and GUI tool for discovering and managing HTTP-enabled devi
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/IPScan.git
+git clone https://github.com/HerbHall/IPScan.git
 cd IPScan
 dotnet build
 ```
 
 ### Releases
 
-Download the latest release from the [Releases](https://github.com/yourusername/IPScan/releases) page.
+Download the latest release from the [Releases](https://github.com/HerbHall/IPScan/releases) page.
 
 ## Usage
 
