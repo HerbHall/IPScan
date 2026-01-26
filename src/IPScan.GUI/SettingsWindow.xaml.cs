@@ -41,6 +41,31 @@ public partial class SettingsWindow : Window
         }
         SplashTimeoutTextBox.Text = _settings.SplashTimeoutSeconds.ToString();
 
+        // Appearance
+        foreach (System.Windows.Controls.ComboBoxItem item in ThemeModeComboBox.Items)
+        {
+            if (item.Tag.ToString() == _settings.ThemeMode.ToString())
+            {
+                ThemeModeComboBox.SelectedItem = item;
+                break;
+            }
+        }
+
+        foreach (System.Windows.Controls.ComboBoxItem item in AccentColorModeComboBox.Items)
+        {
+            if (item.Tag.ToString() == _settings.AccentColorMode.ToString())
+            {
+                AccentColorModeComboBox.SelectedItem = item;
+                break;
+            }
+        }
+
+        // Load custom color
+        CustomColorPicker.SetHexColor(_settings.CustomAccentColor);
+
+        // Show/hide color picker based on accent color mode
+        UpdateColorPickerVisibility();
+
         // Network Configuration
         if (_settings.Subnet == "auto")
         {
@@ -50,6 +75,29 @@ public partial class SettingsWindow : Window
         {
             CustomSubnetRadio.IsChecked = true;
             CustomSubnetTextBox.Text = _settings.CustomSubnet;
+        }
+    }
+
+    private void ThemeModeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        // No action needed, just selection change
+    }
+
+    private void AccentColorModeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        UpdateColorPickerVisibility();
+    }
+
+    private void UpdateColorPickerVisibility()
+    {
+        var selectedItem = AccentColorModeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
+        if (selectedItem?.Tag?.ToString() == "Custom")
+        {
+            ColorPickerBorder.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ColorPickerBorder.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -113,6 +161,23 @@ public partial class SettingsWindow : Window
             {
                 _settings.WindowStartup = windowMode;
             }
+
+            // Theme mode
+            var themeItem = ThemeModeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
+            if (themeItem != null && Enum.TryParse<Core.Models.ThemeMode>(themeItem.Tag.ToString(), out var themeMode))
+            {
+                _settings.ThemeMode = themeMode;
+            }
+
+            // Accent color mode
+            var accentItem = AccentColorModeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
+            if (accentItem != null && Enum.TryParse<Core.Models.AccentColorMode>(accentItem.Tag.ToString(), out var accentMode))
+            {
+                _settings.AccentColorMode = accentMode;
+            }
+
+            // Custom accent color
+            _settings.CustomAccentColor = CustomColorPicker.GetHexColor();
 
             // Network configuration
             if (AutoSubnetRadio.IsChecked == true)

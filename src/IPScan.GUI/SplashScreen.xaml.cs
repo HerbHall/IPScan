@@ -6,9 +6,13 @@ using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using Windows.UI.ViewManagement;
+using IPScan.Core.Models;
+using Microsoft.Win32;
 
-// Disambiguate WPF types from WinForms types
+// Disambiguate WPF types
 using Color = System.Windows.Media.Color;
+using ThemeMode = IPScan.Core.Models.ThemeMode;
+using AccentColorMode = IPScan.Core.Models.AccentColorMode;
 
 namespace IPScan.GUI;
 
@@ -17,17 +21,23 @@ public partial class SplashScreen : Window
     private readonly DispatcherTimer _timer;
     private readonly int _timeoutSeconds;
     private int _remainingSeconds;
-    private readonly bool _isDarkMode;
+    private readonly IPScan.Core.Models.ThemeMode _themeMode;
+    private readonly IPScan.Core.Models.AccentColorMode _accentColorMode;
+    private readonly string _customAccentColor;
+    private bool _isDarkMode;
 
-    public SplashScreen(int timeoutSeconds = 5)
+    public SplashScreen(int timeoutSeconds = 5, IPScan.Core.Models.ThemeMode themeMode = IPScan.Core.Models.ThemeMode.CrtGreen,
+        IPScan.Core.Models.AccentColorMode accentColorMode = IPScan.Core.Models.AccentColorMode.System, string customAccentColor = "#00FF00")
     {
         InitializeComponent();
 
         _timeoutSeconds = timeoutSeconds;
         _remainingSeconds = timeoutSeconds;
+        _themeMode = themeMode;
+        _accentColorMode = accentColorMode;
+        _customAccentColor = customAccentColor;
 
-        // Detect Windows theme
-        _isDarkMode = IsWindowsDarkMode();
+        // Apply theme based on settings
         ApplyTheme();
 
         // Set version from assembly
@@ -66,10 +76,9 @@ public partial class SplashScreen : Window
     {
         try
         {
-            var uiSettings = new UISettings();
-            var foreground = uiSettings.GetColorValue(UIColorType.Foreground);
-            // If foreground is light, we're in dark mode
-            return foreground.R > 128 && foreground.G > 128 && foreground.B > 128;
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            var value = key?.GetValue("AppsUseLightTheme");
+            return value is int intValue && intValue == 0;
         }
         catch
         {
@@ -79,29 +88,110 @@ public partial class SplashScreen : Window
 
     private void ApplyTheme()
     {
+        // Determine theme based on ThemeMode setting
+        switch (_themeMode)
+        {
+            case IPScan.Core.Models.ThemeMode.WindowsSystem:
+                _isDarkMode = IsWindowsDarkMode();
+                break;
+
+            case IPScan.Core.Models.ThemeMode.Light:
+                _isDarkMode = false;
+                break;
+
+            case IPScan.Core.Models.ThemeMode.Dark:
+                _isDarkMode = true;
+                break;
+
+            case IPScan.Core.Models.ThemeMode.CrtGreen:
+                ApplyCrtGreenTheme();
+                return; // CRT theme handles everything
+
+            default:
+                _isDarkMode = false;
+                break;
+        }
+
+        // Get accent color
+        var accentColor = GetAccentColor();
+
+        // Apply theme colors
+        ApplyStandardTheme(accentColor);
+    }
+
+    private void ApplyCrtGreenTheme()
+    {
+        // CRT Green Terminal Theme - Authentic 1970s-80s terminal aesthetic
+        Color accentColor;
+        if (_accentColorMode == IPScan.Core.Models.AccentColorMode.Custom)
+        {
+            accentColor = ParseHexColor(_customAccentColor);
+        }
+        else
+        {
+            accentColor = Color.FromRgb(0, 255, 65); // P1 phosphor green
+        }
+
+        var accentBrush = new SolidColorBrush(accentColor);
+        var dimmedGreen = new SolidColorBrush(Color.FromRgb(0, 170, 0));
+
+        Resources["SplashBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)); // Pure black
+        Resources["SplashBorderBrush"] = new SolidColorBrush(Color.FromRgb(0, 51, 0)); // Dark green
+        Resources["AccentBrush"] = accentBrush;
+        Resources["ConnectionLineBrush"] = accentBrush;
+        Resources["DeviceNodeBrush"] = new SolidColorBrush(Color.FromRgb(10, 10, 10)); // Very dark
+        Resources["DeviceBorderBrush"] = new SolidColorBrush(Color.FromRgb(0, 51, 0)); // Dark green
+        Resources["DeviceIconBrush"] = accentBrush; // Bright green
+        Resources["TitleBrush"] = accentBrush; // Bright green
+        Resources["SubtitleBrush"] = accentBrush; // Bright green
+        Resources["InfoTextBrush"] = dimmedGreen; // Dimmed green
+        Resources["LinkBrush"] = accentBrush;
+        Resources["FooterBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)); // Black
+        Resources["FooterTextBrush"] = dimmedGreen; // Dimmed green
+        Resources["ProgressBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0, 51, 0)); // Dark green
+    }
+
+    private void ApplyStandardTheme(SolidColorBrush accentColor)
+    {
         if (_isDarkMode)
         {
             Resources["SplashBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(32, 32, 32));
             Resources["SplashBorderBrush"] = new SolidColorBrush(Color.FromRgb(64, 64, 64));
-            Resources["AccentBrush"] = GetWindowsAccentColor();
-            Resources["ConnectionLineBrush"] = GetWindowsAccentColor();
+            Resources["AccentBrush"] = accentColor;
+            Resources["ConnectionLineBrush"] = accentColor;
             Resources["DeviceNodeBrush"] = new SolidColorBrush(Color.FromRgb(48, 48, 48));
             Resources["DeviceBorderBrush"] = new SolidColorBrush(Color.FromRgb(80, 80, 80));
             Resources["DeviceIconBrush"] = new SolidColorBrush(Color.FromRgb(220, 220, 220));
             Resources["TitleBrush"] = new SolidColorBrush(Color.FromRgb(255, 255, 255));
             Resources["SubtitleBrush"] = new SolidColorBrush(Color.FromRgb(180, 180, 180));
             Resources["InfoTextBrush"] = new SolidColorBrush(Color.FromRgb(150, 150, 150));
-            Resources["LinkBrush"] = GetWindowsAccentColor();
+            Resources["LinkBrush"] = accentColor;
             Resources["FooterBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(40, 40, 40));
             Resources["FooterTextBrush"] = new SolidColorBrush(Color.FromRgb(150, 150, 150));
             Resources["ProgressBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(64, 64, 64));
         }
         else
         {
-            // Light theme - update accent color
-            Resources["AccentBrush"] = GetWindowsAccentColor();
-            Resources["ConnectionLineBrush"] = GetWindowsAccentColor();
-            Resources["LinkBrush"] = GetWindowsAccentColor();
+            // Light theme - update accent color (rest use default XAML values)
+            Resources["AccentBrush"] = accentColor;
+            Resources["ConnectionLineBrush"] = accentColor;
+            Resources["LinkBrush"] = accentColor;
+        }
+    }
+
+    private SolidColorBrush GetAccentColor()
+    {
+        switch (_accentColorMode)
+        {
+            case IPScan.Core.Models.AccentColorMode.CrtGreen:
+                return new SolidColorBrush(Color.FromRgb(0, 255, 0)); // Bright CRT green
+
+            case IPScan.Core.Models.AccentColorMode.Custom:
+                return new SolidColorBrush(ParseHexColor(_customAccentColor));
+
+            case IPScan.Core.Models.AccentColorMode.System:
+            default:
+                return GetWindowsAccentColor();
         }
     }
 
@@ -116,6 +206,25 @@ public partial class SplashScreen : Window
         catch
         {
             return new SolidColorBrush(Color.FromRgb(0, 120, 212)); // Default Windows blue
+        }
+    }
+
+    private Color ParseHexColor(string hexColor)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(hexColor) || !hexColor.StartsWith("#") || hexColor.Length != 7)
+                return Color.FromRgb(0, 255, 0); // Default green
+
+            var r = Convert.ToByte(hexColor.Substring(1, 2), 16);
+            var g = Convert.ToByte(hexColor.Substring(3, 2), 16);
+            var b = Convert.ToByte(hexColor.Substring(5, 2), 16);
+
+            return Color.FromRgb(r, g, b);
+        }
+        catch
+        {
+            return Color.FromRgb(0, 255, 0); // Default green
         }
     }
 

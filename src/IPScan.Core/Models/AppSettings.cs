@@ -71,6 +71,21 @@ public class AppSettings
     /// Saved window state from last session.
     /// </summary>
     public WindowSettings? LastWindowSettings { get; set; }
+
+    /// <summary>
+    /// Theme mode for the application.
+    /// </summary>
+    public ThemeMode ThemeMode { get; set; } = ThemeMode.CrtGreen;
+
+    /// <summary>
+    /// Accent color mode for the application.
+    /// </summary>
+    public AccentColorMode AccentColorMode { get; set; } = AccentColorMode.System;
+
+    /// <summary>
+    /// Custom accent color in hex format (e.g., "#00FF00").
+    /// </summary>
+    public string CustomAccentColor { get; set; } = "#00FF00";
 }
 
 /// <summary>
@@ -133,4 +148,51 @@ public class WindowSettings
     /// Monitor device name where window was displayed.
     /// </summary>
     public string MonitorDeviceName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Theme mode options for the application.
+/// </summary>
+public enum ThemeMode
+{
+    /// <summary>
+    /// Follow Windows system theme (light or dark).
+    /// </summary>
+    WindowsSystem,
+
+    /// <summary>
+    /// Light theme.
+    /// </summary>
+    Light,
+
+    /// <summary>
+    /// Dark theme.
+    /// </summary>
+    Dark,
+
+    /// <summary>
+    /// Iconic CRT green terminal theme (default).
+    /// </summary>
+    CrtGreen
+}
+
+/// <summary>
+/// Accent color mode options for the application.
+/// </summary>
+public enum AccentColorMode
+{
+    /// <summary>
+    /// Use iconic CRT green color.
+    /// </summary>
+    CrtGreen,
+
+    /// <summary>
+    /// Follow Windows system accent color (default).
+    /// </summary>
+    System,
+
+    /// <summary>
+    /// Use custom user-defined color.
+    /// </summary>
+    Custom
 }

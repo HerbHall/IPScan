@@ -340,7 +340,48 @@ public partial class MainWindow : Window
 
     #region Theme Support
 
-    private void DetectAndApplyTheme()
+    private async void DetectAndApplyTheme()
+    {
+        // Load user settings to determine theme mode
+        var settings = await _settingsService.GetSettingsAsync();
+
+        // Apply theme based on user preference
+        ApplyThemeFromSettings(settings);
+    }
+
+    private void ApplyThemeFromSettings(AppSettings settings)
+    {
+        // Determine which theme to apply based on ThemeMode setting
+        switch (settings.ThemeMode)
+        {
+            case Core.Models.ThemeMode.WindowsSystem:
+                // Detect Windows theme
+                DetectWindowsTheme();
+                break;
+
+            case Core.Models.ThemeMode.Light:
+                _isDarkMode = false;
+                break;
+
+            case Core.Models.ThemeMode.Dark:
+                _isDarkMode = true;
+                break;
+
+            case Core.Models.ThemeMode.CrtGreen:
+                ApplyCrtGreenTheme(settings);
+                return; // CRT theme handles its own accent color
+
+            default:
+                _isDarkMode = false;
+                break;
+        }
+
+        // Get accent color based on AccentColorMode
+        var accentColor = GetAccentColor(settings);
+        ApplyTheme(accentColor);
+    }
+
+    private void DetectWindowsTheme()
     {
         // Check Windows dark mode setting
         try
@@ -353,20 +394,119 @@ public partial class MainWindow : Window
         {
             _isDarkMode = false;
         }
+    }
 
-        // Get Windows accent color
-        var accentColor = _uiSettings.GetColorValue(UIColorType.Accent);
-        var wpfAccentColor = Color.FromArgb(accentColor.A, accentColor.R, accentColor.G, accentColor.B);
+    private Color GetAccentColor(AppSettings settings)
+    {
+        switch (settings.AccentColorMode)
+        {
+            case Core.Models.AccentColorMode.CrtGreen:
+                return Color.FromRgb(0, 255, 0); // Bright CRT green
 
-        ApplyTheme(wpfAccentColor);
+            case Core.Models.AccentColorMode.Custom:
+                return ParseHexColor(settings.CustomAccentColor);
+
+            case Core.Models.AccentColorMode.System:
+            default:
+                // Get Windows accent color
+                var accentColor = _uiSettings.GetColorValue(UIColorType.Accent);
+                return Color.FromArgb(accentColor.A, accentColor.R, accentColor.G, accentColor.B);
+        }
+    }
+
+    private Color ParseHexColor(string hexColor)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(hexColor) || !hexColor.StartsWith("#") || hexColor.Length != 7)
+                return Color.FromRgb(0, 120, 212); // Default blue
+
+            var r = Convert.ToByte(hexColor.Substring(1, 2), 16);
+            var g = Convert.ToByte(hexColor.Substring(3, 2), 16);
+            var b = Convert.ToByte(hexColor.Substring(5, 2), 16);
+
+            return Color.FromRgb(r, g, b);
+        }
+        catch
+        {
+            return Color.FromRgb(0, 120, 212); // Default blue
+        }
     }
 
     private void UiSettings_ColorValuesChanged(UISettings sender, object args)
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.Invoke(async () =>
         {
-            DetectAndApplyTheme();
+            // Only respond to system changes if in WindowsSystem mode
+            var settings = await _settingsService.GetSettingsAsync();
+            if (settings.ThemeMode == Core.Models.ThemeMode.WindowsSystem)
+            {
+                DetectAndApplyTheme();
+            }
         });
+    }
+
+    private void ApplyCrtGreenTheme(AppSettings settings)
+    {
+        // CRT Green Terminal Theme - Authentic 1970s-80s terminal aesthetic
+        // Pure black background with bright phosphor green (P1 phosphor)
+
+        // Get accent color for CRT theme
+        Color accentColor;
+        if (settings.AccentColorMode == Core.Models.AccentColorMode.Custom)
+        {
+            accentColor = ParseHexColor(settings.CustomAccentColor);
+        }
+        else
+        {
+            accentColor = Color.FromRgb(0, 255, 65); // Authentic P1 phosphor green (#00FF41)
+        }
+
+        var accentBrush = new SolidColorBrush(accentColor);
+
+        // Calculate dimmed green for secondary text
+        var dimmedGreen = Color.FromRgb(0, 170, 0); // #00AA00
+        var veryDimmedGreen = Color.FromRgb(0, 100, 0); // #006400
+
+        // Background colors - pure black and very dark tones
+        Resources["WindowBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)); // Pure black
+        Resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(10, 10, 10)); // Very dark gray
+        Resources["PanelBorderBrush"] = new SolidColorBrush(Color.FromRgb(0, 51, 0)); // Dark green border
+        Resources["MenuBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)); // Pure black
+        Resources["MenuBorderBrush"] = new SolidColorBrush(Color.FromRgb(0, 51, 0)); // Dark green border
+        Resources["ToolbarBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(5, 5, 5)); // Near black
+
+        // Text colors - green phosphor glow
+        Resources["TitleBrush"] = accentBrush; // Bright green
+        Resources["TextBrush"] = accentBrush; // Bright green
+        Resources["SecondaryTextBrush"] = new SolidColorBrush(dimmedGreen); // Dimmed green
+        Resources["DisabledTextBrush"] = new SolidColorBrush(veryDimmedGreen); // Very dim green
+
+        // Separators and borders
+        Resources["SeparatorBrush"] = new SolidColorBrush(Color.FromRgb(0, 51, 0)); // Dark green
+        Resources["TreeViewSelectedBrush"] = new SolidColorBrush(Color.FromRgb(0, 51, 0)); // Dark green selection
+
+        // Accent colors with green glow effect
+        var hoverColor = Color.FromRgb(
+            (byte)Math.Min(255, (int)accentColor.R + 20),
+            (byte)Math.Min(255, (int)accentColor.G),
+            (byte)Math.Min(255, (int)accentColor.B + 20)); // Slightly brighter
+        var pressedColor = Color.FromRgb(
+            (byte)Math.Max(0, (int)accentColor.R),
+            (byte)Math.Max(0, (int)accentColor.G - 50),
+            (byte)Math.Max(0, (int)accentColor.B)); // Slightly darker
+
+        Resources["AccentBrush"] = accentBrush;
+        Resources["AccentHoverBrush"] = new SolidColorBrush(hoverColor);
+        Resources["AccentPressedBrush"] = new SolidColorBrush(pressedColor);
+        Resources["LinkBrush"] = accentBrush;
+        Resources["StatusBarBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)); // Black status bar
+
+        // Online/Offline status colors in CRT theme
+        Resources["OnlineStatusBrush"] = accentBrush; // Bright green for online
+        Resources["OfflineStatusBrush"] = new SolidColorBrush(veryDimmedGreen); // Dim green for offline
+
+        _isDarkMode = true; // Treat CRT as dark mode for other components
     }
 
     private void ApplyTheme(Color accentColor)
@@ -426,30 +566,25 @@ public partial class MainWindow : Window
 
     private void ApplyThemeToWindow(Window window)
     {
-        // Copy current theme resources to child window
-        if (_isDarkMode)
+        // Copy all current theme resources to child window
+        var resourceKeys = new[]
         {
-            // Dark theme
-            window.Resources["WindowBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(30, 30, 30));
-            window.Resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(45, 45, 45));
-            window.Resources["PanelBorderBrush"] = new SolidColorBrush(Color.FromRgb(60, 60, 60));
-            window.Resources["TitleBrush"] = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-            window.Resources["TextBrush"] = new SolidColorBrush(Color.FromRgb(230, 230, 230));
-            window.Resources["SecondaryTextBrush"] = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-        }
-        else
-        {
-            // Light theme
-            window.Resources["WindowBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(243, 243, 243));
-            window.Resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-            window.Resources["PanelBorderBrush"] = new SolidColorBrush(Color.FromRgb(224, 224, 224));
-            window.Resources["TitleBrush"] = new SolidColorBrush(Color.FromRgb(26, 26, 26));
-            window.Resources["TextBrush"] = new SolidColorBrush(Color.FromRgb(51, 51, 51));
-            window.Resources["SecondaryTextBrush"] = new SolidColorBrush(Color.FromRgb(102, 102, 102));
-        }
+            "WindowBackgroundBrush", "PanelBackgroundBrush", "PanelBorderBrush",
+            "MenuBackgroundBrush", "MenuBorderBrush", "ToolbarBackgroundBrush",
+            "TitleBrush", "TextBrush", "SecondaryTextBrush", "DisabledTextBrush",
+            "SeparatorBrush", "TreeViewSelectedBrush",
+            "AccentBrush", "AccentHoverBrush", "AccentPressedBrush",
+            "LinkBrush", "StatusBarBackgroundBrush",
+            "OnlineStatusBrush", "OfflineStatusBrush"
+        };
 
-        // Apply accent color
-        window.Resources["AccentBrush"] = Resources["AccentBrush"];
+        foreach (var key in resourceKeys)
+        {
+            if (Resources.Contains(key))
+            {
+                window.Resources[key] = Resources[key];
+            }
+        }
     }
 
     #endregion
@@ -625,9 +760,13 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true)
         {
-            // Settings were saved, reload them
+            // Settings were saved, reload them and apply new theme
             var updatedSettings = await _settingsService.GetSettingsAsync();
             ShowOfflineMenuItem.IsChecked = updatedSettings.ShowOfflineDevices;
+
+            // Apply new theme immediately
+            ApplyThemeFromSettings(updatedSettings);
+
             RefreshDeviceTreeView();
             StatusText.Text = "Settings saved successfully";
         }
