@@ -1002,8 +1002,18 @@ public partial class MainWindow : Window
             var duration = e.Result.Duration.TotalSeconds;
             StatusText.Text = $"Scan complete: {e.Result.DevicesFound} devices found in {duration:F1}s " +
                              $"({e.NewDevicesFound} new, {e.DevicesUpdated} updated)";
+
+            // Preserve selected device ID before refresh
+            var selectedDeviceId = _selectedDevice?.Id;
+
             RefreshDeviceTreeView();
             UpdateStatusCounts();
+
+            // Restore selection after refresh
+            if (selectedDeviceId.HasValue)
+            {
+                RestoreDeviceSelection(selectedDeviceId.Value);
+            }
         });
     }
 
@@ -1015,8 +1025,18 @@ public partial class MainWindow : Window
             {
                 _devices.Add(e.Device);
             }
+
+            // Preserve selected device ID before refresh
+            var selectedDeviceId = _selectedDevice?.Id;
+
             RefreshDeviceTreeView();
             UpdateStatusCounts();
+
+            // Restore selection after refresh
+            if (selectedDeviceId.HasValue)
+            {
+                RestoreDeviceSelection(selectedDeviceId.Value);
+            }
         });
     }
 
