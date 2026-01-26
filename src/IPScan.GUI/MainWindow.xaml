@@ -233,6 +233,7 @@
                                    Foreground="{DynamicResource DisabledTextBrush}" Margin="0,0,8,0"/>
                         <TextBox Grid.Column="1" x:Name="SearchBox" BorderThickness="0"
                                  Background="Transparent" VerticalAlignment="Center"
+                                 Foreground="{DynamicResource TextBrush}"
                                  Text="" TextChanged="SearchBox_TextChanged">
                             <TextBox.Style>
                                 <Style TargetType="TextBox">
@@ -535,6 +536,7 @@
                                          MinHeight="80" Padding="8"
                                          Background="{DynamicResource WindowBackgroundBrush}"
                                          BorderBrush="{DynamicResource PanelBorderBrush}"
+                                         Foreground="{DynamicResource TextBrush}"
                                          Text="[Device notes will appear here]"/>
                             </StackPanel>
                         </StackPanel>
