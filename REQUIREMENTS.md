@@ -77,7 +77,8 @@ IPScan is a Windows network device discovery tool that locates HTTP-enabled devi
    - Update settings from CLI or GUI.
 
 4. **GUI Theming**
-   - Splash screen, logo.png, and windows icons should have an iconic CRT green theme, high-contrast, monochrome display style of 1970s-80s computer terminals, typically using P1 phosphor for a bright green, "glowing" look on a black background.
+   - Splash screen, logo.png, and windows icons should have a toned down iconic CRT green theme, medium-contrast, monochrome display style of 1970s-80s computer terminals, typically using P1 phosphor for a bright green, "glowing" look on a black background.
+   - Use three or more shades of green with additional accent colors as propriate to make information readable and distinct where emphisis is needed.
    - Use iconic CRT green theme for highlights and interactive elements with settings to use Windows accent colors 
    - Respond to real-time theme changes from Windows
    - User override options in Settings:
@@ -259,6 +260,7 @@ IPScan/
 - Unit tests for core scanning and detection logic
 - Integration tests for CLI commands
 - Automated testing via `dotnet test`
+- All code should implement null checking and arguement validation techniques to ensure data validity to prevent runtime crashes.
 
 ## Data Storage
 
