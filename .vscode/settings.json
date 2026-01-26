@@ -1,5 +1,5 @@
 {
-    "dotnet.defaultSolution": "IPScan.sln",
+    "dotnet.defaultSolution": "IPScan.slnx",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
         "source.organizeImports": "explicit"

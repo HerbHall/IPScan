@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/IPScan.sln",
+                "${workspaceFolder}/IPScan.slnx",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -23,7 +23,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/IPScan.sln",
+                "${workspaceFolder}/IPScan.slnx",
                 "-c",
                 "Release",
                 "/property:GenerateFullPaths=true",
@@ -37,7 +37,7 @@
             "type": "process",
             "args": [
                 "test",
-                "${workspaceFolder}/IPScan.sln",
+                "${workspaceFolder}/IPScan.slnx",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -53,7 +53,7 @@
             "type": "process",
             "args": [
                 "clean",
-                "${workspaceFolder}/IPScan.sln"
+                "${workspaceFolder}/IPScan.slnx"
             ],
             "problemMatcher": "$msCompile"
         },
@@ -63,7 +63,7 @@
             "type": "process",
             "args": [
                 "restore",
-                "${workspaceFolder}/IPScan.sln"
+                "${workspaceFolder}/IPScan.slnx"
             ],
             "problemMatcher": "$msCompile"
         },
@@ -73,7 +73,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/IPScan.sln",
+                "${workspaceFolder}/IPScan.slnx",
                 "-c",
                 "Release"
             ],
