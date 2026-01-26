@@ -35,6 +35,9 @@ Download the latest release from the [Releases](https://github.com/HerbHall/IPSc
 ### Command Line
 
 ```bash
+# Launch GUI (no arguments)
+ipscan
+
 # Scan for new devices on the local network
 ipscan scan
 
@@ -43,6 +46,9 @@ ipscan scan --subnet 192.168.1.0/24
 
 # Rescan all devices (update existing device info)
 ipscan scan --rescan
+
+# Scan and then open GUI
+ipscan scan --gui
 
 # List saved devices
 ipscan list
@@ -53,16 +59,24 @@ ipscan show <device-name>
 # Open a device's web interface
 ipscan open <device-name>
 
+# View/modify settings
+ipscan settings get              # Show all settings
+ipscan settings get scanOnStartup  # Show specific setting
+ipscan settings set splashTimeoutSeconds 3
+
+# Explicitly launch GUI
+ipscan gui
+
 # View all commands
 ipscan --help
 ```
 
 ### GUI
 
-Launch the GUI application:
+Launch the GUI by running `ipscan` without arguments, or explicitly:
 
 ```bash
-ipscan-gui
+ipscan gui
 ```
 
 Or run from the Start Menu after installation.

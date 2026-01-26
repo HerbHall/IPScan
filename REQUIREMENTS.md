@@ -24,6 +24,9 @@ IPScan is a Windows network device discovery tool that locates HTTP-enabled devi
    - Full-featured command line interface (CLI)
    - Graphical user interface (GUI) using WPF
    - All features accessible through both interfaces
+   - Display GUI if no options on command line
+   - Option to display GUI with command line options set.
+   - Update settings from CLI or GUI.
 
 4. **GUI Theming**
    - Follow Windows system theme by default (light/dark mode)
