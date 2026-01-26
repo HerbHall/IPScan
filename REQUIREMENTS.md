@@ -6,6 +6,8 @@ IPScan is a Windows network device discovery tool that locates HTTP-enabled devi
 
 **Current Project Status**: The application has a complete GUI framework with theming support, but core network scanning functionality is not yet implemented. The project is in early development with foundational architecture in place.
 
+**📋 Key Implementation Decisions**: See [DECISIONS.md](DECISIONS.md) for comprehensive design decisions made from requirements questionnaire (network interfaces, storage, admin privileges, port scanning, notifications, and more). All blocker questions answered - development can proceed with Phase 1.
+
 ## Quick Start for Developers
 
 ### Building the Project
@@ -901,82 +903,246 @@ The application scans these ports by default (can be customized in settings):
 
 ## Development Roadmap
 
-### Phase 1: Core Functionality (Current Priority)
-**Goal**: Make the application functional for basic network device discovery
+**See [DECISIONS.md](DECISIONS.md) for detailed implementation decisions from requirements questionnaire.**
 
-1. **Network Scanning Implementation**
+### Phase 1: Full MVP (Current Priority)
+**Goal**: Complete network device discovery with categorization and port scanning
+**Philosophy**: User flexibility and customization. Feel "light and fast" with optional features.
+**Timeline**: No deadline - completeness over speed
+
+#### 1. Foundation & Infrastructure
+
+**1.1 Administrative Privileges** ⚠️ Critical First Step
+   - Update `app.manifest` for both GUI and CLI projects
+   - Set `requireAdministrator` to enable full network capabilities
+   - Test elevation on Windows 10/11
+
+**1.2 Single Instance Control**
+   - Implement named Mutex to prevent multiple instances
+   - Show "already running" error dialog with option to bring existing window to front
+   - Note: File locking for concurrent CLI/GUI access deferred to Phase 2
+
+**1.3 Storage System with Fallback**
+   - Implement `JsonSettingsService.cs` for settings persistence
+   - Primary location: `%APPDATA%\IPScan\settings.json`
+   - Fallback strategy:
+     - On storage failure, run in memory-only mode
+     - Show persistent warning banner
+     - Prompt user: "Use local directory" or "Continue without saving"
+     - Save choice in registry for next launch
+   - Implement `JsonDeviceRepository.cs` for device storage
+   - Support memory-only operation (no persistence)
+
+#### 2. Network Scanning - Core Implementation
+
+**2.1 Network Interface Detection**
+   - Implement `NetworkInterfaceService.cs`
+   - Auto-detect primary interface (with default gateway)
+   - Filter out VPN interfaces by default (Tailscale, Wireguard, OpenVPN patterns)
+   - Identify VPN interfaces but exclude from automatic scanning
+   - Support for user override (scan VPN if explicitly requested)
+
+**2.2 Primary Interface Scanning** (IPv4 Only)
+   - Implement `SubnetCalculator.cs` for IPv4 subnet detection
    - Implement `NetworkScanner.cs` using SharpPcap and System.Net.NetworkInformation
-   - Subnet detection and IP address enumeration
    - Async ping sweep with configurable concurrency
    - Hostname resolution (DNS/mDNS)
-   - MAC address discovery via ARP
+   - MAC address discovery via ARP (requires admin)
+   - Note: IPv6 support deferred to Phase 3+
 
-2. **Data Persistence**
-   - Implement `JsonDeviceRepository.cs` for device storage
-   - Implement `JsonSettingsService.cs` for settings persistence
-   - Create `%APPDATA%\IPScan` directory structure
-   - JSON serialization/deserialization with System.Text.Json
+**2.3 Multi-Interface Support** (After primary scan works)
+   - After primary scan completes, detect additional non-VPN interfaces
+   - If found, prompt user: "Additional interfaces detected. Scan them too?"
+   - Show interface names and types
+   - Allow user to select one or more to scan
+   - Remember interface preferences in settings
 
-3. **Device Management**
+#### 3. Port Scanning with Background Queue
+
+**3.1 Port Scanner Implementation**
+   - TCP port scanner for common ports (see Functional Requirements)
+   - Configurable timeout per port (default: 100ms)
+   - Service detection from port responses
+   - HTTP/HTTPS link generation
+
+**3.2 Background Queue System** 🎯 Key UX Feature
+   - Ping sweep completes first, displays results immediately
+   - Port scans queued in background with priority:
+     - Priority 1: Newly discovered devices (never scanned)
+     - Priority 2: Existing devices (updating stale data)
+   - Max concurrent port scans (default: 10, user-configurable)
+   - Real-time UI updates as port scans complete per device
+   - Visual progress indicator per device
+
+#### 4. Device Categorization & MAC Lookup (Full Phase 1)
+
+**4.1 MAC OUI Database**
+   - Bundle OUI database with application installer
+   - Store in application resources
+   - Manufacturer lookup on device discovery
+   - Phase 1 enhancement: Manual "Update MAC Database" button
+
+**4.2 Device Categorization Logic**
+   - Extend Device model with category fields
+   - Hardware category detection from MAC manufacturer
+   - Service category detection from open ports
+   - User override capability in Edit Device dialog
+
+#### 5. Device Management
+
    - Implement `DeviceManager.cs` to coordinate scanning and storage
    - Device deduplication logic
    - Online/offline status tracking
    - Consecutive missed scans tracking
+   - First-discovered timestamp
+   - Last-seen timestamp
 
-4. **GUI Integration**
+#### 6. GUI Integration
+
    - Connect MainWindow to DeviceManager
-   - Real-time device list updates during scanning
-   - Implement device tree view with online/offline grouping
-   - Scan progress display
+   - Real-time device list updates during background port scanning
+   - Device tree view with online/offline grouping
+   - Category-based filtering and grouping
+   - Scan progress display (per-device indicators)
    - Search/filter functionality
+   - Clickable links to device web interfaces (HTTP/HTTPS)
+   - Visual highlights for new devices (see Phase 2 for enhancements)
+   - Ethics warning on splash screen: "Scan responsibly - own/authorized networks only"
 
-5. **CLI Integration**
-   - Implement scan command with actual network scanning
-   - Implement list command with device repository access
-   - Implement show command with device details
-   - Implement settings get/set with settings service
+#### 7. CLI Integration
 
-### Phase 2: Enhanced Features
-**Goal**: Add port scanning and device identification
+**7.1 Basic Commands** (Plain Text Output)
+   - Implement `scan` command with actual network scanning
+   - Implement `list` command with device repository access
+   - Implement `show <id>` command with device details
+   - Implement `settings get/set` with settings service
+   - Human-readable table format
 
-1. **Port Scanning**
-   - TCP port scanner for common ports
-   - Service detection from port responses
-   - HTTP/HTTPS link generation
-   - Port scan results storage in Device model
+**7.2 JSON Output** (Phase 1 Enhancement)
+   - Add `--format json` flag to all commands
+   - Enable scripting and automation
+   - Note: CSV/XML export deferred to Phase 2+
 
-2. **Device Categorization**
-   - Extend Device model with category fields
-   - MAC OUI database integration for manufacturer lookup
-   - Hardware category detection logic
-   - Service category detection from open ports
-   - User override capability
+#### 8. Ethics & Legal
 
-3. **GUI Enhancements**
-   - Category-based filtering
-   - Clickable links to device web interfaces
-   - Export/import device lists
-   - Enhanced device details panel
+   - First-run disclaimer dialog: "Only scan networks you own or have permission to scan"
+   - "I understand" checkbox
+   - Don't show again (stored in settings)
+   - Brief reminder text on splash screen
 
-### Phase 3: Advanced Features
+### Phase 2: Enhanced User Experience
+**Goal**: User customization and advanced workflow features
+
+#### 1. Notification & Alert System
+
+**1.1 Device Discovery Notifications**
+   - Visual highlights for new devices (bold/colored, fade after viewed)
+   - Settings panel for notification preferences:
+     - None (silent)
+     - Visual only (default)
+     - Visual + Windows toast notification
+     - Visual + toast + sound alert
+   - Different sounds for first-time vs returning devices
+
+#### 2. Background Scanning Automation
+
+**2.1 Periodic Automatic Rescans**
+   - Manual scan only (default)
+   - Configurable periodic rescans: 5, 10, 15, 30, 60 minutes
+   - Scan on network change detection (event-driven)
+   - Combination mode (both periodic and event-driven)
+   - All options user-configurable in settings
+
+#### 3. Concurrent Access & File Locking
+
+**3.1 Replace Single-Instance with File Locking**
+   - Implement file-based locking with FileStream
+   - Enable simultaneous CLI and GUI operation
+   - Graceful handling of lock conflicts
+   - "File in use" error messages
+   - Evaluate performance overhead before enabling
+
+#### 4. Hierarchical Network View
+
+**4.1 Multi-Subnet Support**
+   - Group devices by subnet/VLAN
+   - Support multiple Class C networks
+   - Hierarchical tree view by network segment
+   - Target use cases:
+     - IoT device segregation
+     - Security camera VLANs
+     - Multiple subnet management
+
+#### 5. MAC OUI Database Auto-Update
+
+**5.1 Automatic Database Updates**
+   - Settings: Enable auto-update checkbox
+   - Update frequency: weekly or monthly
+   - Background download from IEEE
+   - Notification on update completion
+
+#### 6. Export/Import Enhancements
+
+**6.1 Multiple Export Formats**
+   - JSON (default, already storage format)
+   - CSV (for Excel/databases)
+   - XML
+   - HTML report
+   - User-selectable in export dialog
+   - Export options:
+     - All devices
+     - Filtered/selected devices
+     - With/without offline devices
+
+### Phase 3: Advanced Features & Polish
 **Goal**: Professional-grade network management tool
 
-1. **Connection Type Detection**
+#### 1. System Tray Integration (User Configurable)
+
+**1.1 Tray Behavior Options**
+   - No tray icon (default)
+   - Minimize to tray (background daemon style)
+   - Always show tray with status indicator (idle/scanning)
+   - Tray menu: Scan Now, Open, Exit
+   - Configurable in settings
+
+#### 2. Data Retention & Archival
+
+**2.1 Device Cleanup Policies**
+   - Keep all devices forever (default)
+   - Configurable archival after N days offline (30/60/90/custom)
+   - Archived devices in separate list/section
+   - Can restore from archive
+   - Archive data persisted to separate JSON file
+
+#### 3. IPv6 Support
+
+**3.1 Dual Stack Implementation**
+   - Support both IPv4 and IPv6 addressing
+   - Store both addresses per device if detected
+   - IPv4 preferred by default (user-configurable)
+   - Target: As IPv6 becomes more common in home networks
+
+#### 4. Connection Type Detection
+
    - Wired/wireless detection via MAC OUI
    - SNMP integration for switch port mapping
    - Router API integration for wireless client lists
 
-2. **Credentials Management**
+#### 5. Credentials Management
+
    - Windows Credential Manager integration
    - Per-device credential storage
    - Credential-based quick launch
 
-3. **Testing & Quality**
+#### 6. Testing & Quality
+
    - Unit tests for Core services
    - Integration tests for CLI
    - End-to-end GUI testing
 
-4. **Documentation**
+#### 7. Documentation
+
    - User guide
    - GUI help system (File > Help)
    - Developer documentation
