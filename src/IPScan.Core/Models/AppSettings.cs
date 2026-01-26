@@ -55,4 +55,82 @@ public class AppSettings
     /// Splash screen timeout in seconds.
     /// </summary>
     public int SplashTimeoutSeconds { get; set; } = 5;
+
+    /// <summary>
+    /// Window startup behavior.
+    /// </summary>
+    public WindowStartupMode WindowStartup { get; set; } = WindowStartupMode.RememberLast;
+
+    /// <summary>
+    /// Preferred monitor device name (e.g., "\\.\DISPLAY1").
+    /// Empty string means use primary monitor.
+    /// </summary>
+    public string PreferredMonitor { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Saved window state from last session.
+    /// </summary>
+    public WindowSettings? LastWindowSettings { get; set; }
+}
+
+/// <summary>
+/// Window startup behavior options.
+/// </summary>
+public enum WindowStartupMode
+{
+    /// <summary>
+    /// Remember last window position, size, and state.
+    /// </summary>
+    RememberLast,
+
+    /// <summary>
+    /// Always start maximized.
+    /// </summary>
+    AlwaysMaximized,
+
+    /// <summary>
+    /// Always start centered with default size.
+    /// </summary>
+    DefaultCentered,
+
+    /// <summary>
+    /// Start on a specific monitor (uses PreferredMonitor setting).
+    /// </summary>
+    SpecificMonitor
+}
+
+/// <summary>
+/// Saved window position and state.
+/// </summary>
+public class WindowSettings
+{
+    /// <summary>
+    /// Window left position.
+    /// </summary>
+    public double Left { get; set; }
+
+    /// <summary>
+    /// Window top position.
+    /// </summary>
+    public double Top { get; set; }
+
+    /// <summary>
+    /// Window width.
+    /// </summary>
+    public double Width { get; set; }
+
+    /// <summary>
+    /// Window height.
+    /// </summary>
+    public double Height { get; set; }
+
+    /// <summary>
+    /// Whether window was maximized.
+    /// </summary>
+    public bool IsMaximized { get; set; }
+
+    /// <summary>
+    /// Monitor device name where window was displayed.
+    /// </summary>
+    public string MonitorDeviceName { get; set; } = string.Empty;
 }

@@ -14,6 +14,7 @@ IPScan is a Windows network device discovery tool that locates HTTP-enabled devi
    - Automatically detect known ports on each device.
    - Present discovered devices in a hierarchical view with name, IP, device type, ports, etc...
    - Include links to access devices and ports as appropriate.
+   - 
 
 2. **Device Management**
    - Remember previously discovered devices, update their info if rescan option selected after each scan.
@@ -30,11 +31,12 @@ IPScan is a Windows network device discovery tool that locates HTTP-enabled devi
 
 4. **GUI Theming**
    - Follow Windows system theme by default (light/dark mode)
-   - Use Windows accent colors for highlights and interactive elements
+   - Splash screen, logo.png, and windows icons should have an iconic CRT green theme, high-contrast, monochrome display style of 1970s-80s computer terminals, typically using P1 phosphor for a bright green, "glowing" look on a black background.
+   - Use iconic CRT green theme for highlights and interactive elements with settings to use Windows accent colors 
    - Respond to real-time theme changes from Windows
    - User override options in Settings:
-     - Theme: System (default), Light, Dark
-     - Accent Color: System (default), or custom color picker
+     - Theme: System (default), Light, Dark, iconic CRT
+     - Accent Color: iconic CRT, System (default), or user custom color picker
    - Persist theme preferences across sessions
 
 5. **Splash Screen**

@@ -12,7 +12,11 @@
       "WebFetch(domain:www.stationx.net)",
       "Bash(taskkill:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Implement Core library with network scanning and device management\n\nAdd models:\n- Device, DeviceList for persistent device storage\n- NetworkInterfaceInfo for interface detection\n- ScanResult, DiscoveredDevice for scan operations\n- AppSettings for configuration\n\nAdd services:\n- NetworkInterfaceService: Detects interfaces, prioritizes Ethernet\n- SubnetCalculator: CIDR parsing, host enumeration\n- NetworkScanner: Async ping sweep with concurrency control\n- JsonDeviceRepository: Device persistence to %APPDATA%\n- JsonSettingsService: Settings persistence\n- DeviceManager: High-level orchestration with auto-removal\n\nAdd comprehensive unit tests \\(115 tests passing\\):\n- SubnetCalculator, repository, settings, interface, device manager tests\n- Model tests for Device, AppSettings, ScanResult\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Implement Core library with network scanning and device management\n\nAdd models:\n- Device, DeviceList for persistent device storage\n- NetworkInterfaceInfo for interface detection\n- ScanResult, DiscoveredDevice for scan operations\n- AppSettings for configuration\n\nAdd services:\n- NetworkInterfaceService: Detects interfaces, prioritizes Ethernet\n- SubnetCalculator: CIDR parsing, host enumeration\n- NetworkScanner: Async ping sweep with concurrency control\n- JsonDeviceRepository: Device persistence to %APPDATA%\n- JsonSettingsService: Settings persistence\n- DeviceManager: High-level orchestration with auto-removal\n\nAdd comprehensive unit tests \\(115 tests passing\\):\n- SubnetCalculator, repository, settings, interface, device manager tests\n- Model tests for Device, AppSettings, ScanResult\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git checkout:*)",
+      "mcp__MCP_DOCKER__list_directory",
+      "mcp__MCP_DOCKER__read_file",
+      "Bash(dotnet clean:*)"
     ]
   }
 }

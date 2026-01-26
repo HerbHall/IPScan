@@ -7,6 +7,9 @@ using System.Windows.Navigation;
 using System.Windows.Threading;
 using Windows.UI.ViewManagement;
 
+// Disambiguate WPF types from WinForms types
+using Color = System.Windows.Media.Color;
+
 namespace IPScan.GUI;
 
 public partial class SplashScreen : Window

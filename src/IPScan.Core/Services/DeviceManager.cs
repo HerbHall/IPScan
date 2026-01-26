@@ -223,7 +223,8 @@ public class DeviceManager : IDeviceManager
         var discoveredIps = discoveredDevices.Select(d => d.IpAddress).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var allDevices = await GetAllDevicesAsync(cancellationToken);
 
-        foreach (var device in allDevices)
+        // Take a copy to avoid collection modified exception when UpsertAsync modifies the cached list
+        foreach (var device in allDevices.ToList())
         {
             if (!discoveredIps.Contains(device.IpAddress))
             {
