@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private readonly object _devicesLock = new();
     private Device? _selectedDevice;
     private System.Threading.Timer? _notesAutoSaveTimer;
+    private bool _isUpdatingNotesText;
 
     public MainWindow()
     {
@@ -1032,8 +1033,18 @@ public partial class MainWindow : Window
                     _devices[index] = e.Device;
                 }
             }
+
+            // Preserve selected device ID before refresh
+            var selectedDeviceId = _selectedDevice?.Id;
+
             RefreshDeviceTreeView();
             UpdateStatusCounts();
+
+            // Restore selection after refresh
+            if (selectedDeviceId.HasValue)
+            {
+                RestoreDeviceSelection(selectedDeviceId.Value);
+            }
         });
     }
 
@@ -1244,6 +1255,25 @@ public partial class MainWindow : Window
         OfflineCountText.Text = $"{offlineCount} offline";
     }
 
+    private void RestoreDeviceSelection(Guid deviceId)
+    {
+        // Search through the TreeView to find and select the device
+        foreach (TreeViewItem categoryItem in DeviceTreeView.Items)
+        {
+            if (categoryItem == null) continue;
+
+            foreach (TreeViewItem deviceItem in categoryItem.Items)
+            {
+                if (deviceItem?.Tag is Device device && device.Id == deviceId)
+                {
+                    deviceItem.IsSelected = true;
+                    deviceItem.BringIntoView();
+                    return;
+                }
+            }
+        }
+    }
+
     #endregion
 
     #region Device List Events
@@ -1282,7 +1312,11 @@ public partial class MainWindow : Window
         DeviceTypeText.Text = "Device"; // TODO: Add device type categorization
         DeviceFirstSeenText.Text = device.FirstDiscovered.ToLocalTime().ToString("MMM dd, yyyy");
         DeviceLastSeenText.Text = device.LastSeen.ToLocalTime().ToString("MMM dd, yyyy h:mm tt");
+
+        // Update notes text without triggering auto-save
+        _isUpdatingNotesText = true;
         DeviceNotesText.Text = device.Notes ?? "";
+        _isUpdatingNotesText = false;
 
         // Update status indicator (resources may not be initialized yet)
         if (device.IsOnline)
@@ -1376,6 +1410,10 @@ public partial class MainWindow : Window
 
     private void DeviceNotesText_TextChanged(object sender, TextChangedEventArgs e)
     {
+        // Don't trigger auto-save if we're programmatically updating the text
+        if (_isUpdatingNotesText)
+            return;
+
         // Auto-save device notes with debouncing (wait 1 second after user stops typing)
         if (_selectedDevice == null)
             return;
