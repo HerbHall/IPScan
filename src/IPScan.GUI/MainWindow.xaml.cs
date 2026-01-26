@@ -478,24 +478,40 @@ public partial class MainWindow : Window
         await StartScanAsync();
     }
 
-    private void ExportDevices_Click(object sender, RoutedEventArgs e)
+    private async void ExportDevices_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new SaveFileDialog
         {
             Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
             DefaultExt = ".json",
-            FileName = "devices_export"
+            FileName = $"ipscan_devices_{DateTime.Now:yyyyMMdd_HHmmss}.json"
         };
 
         if (dialog.ShowDialog() == true)
         {
-            // TODO: Export devices via IPScan.Core
-            MessageBox.Show($"Export to {dialog.FileName} not yet implemented.",
-                "Export Devices", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                var devices = await _deviceManager.GetAllDevicesAsync();
+                var json = System.Text.Json.JsonSerializer.Serialize(devices, new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await System.IO.File.WriteAllTextAsync(dialog.FileName, json);
+
+                MessageBox.Show($"Exported {devices.Count} device(s) to {System.IO.Path.GetFileName(dialog.FileName)}",
+                    "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText.Text = $"Exported {devices.Count} devices";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting devices: {ex.Message}",
+                    "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 
-    private void ImportDevices_Click(object sender, RoutedEventArgs e)
+    private async void ImportDevices_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
         {
@@ -505,9 +521,61 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true)
         {
-            // TODO: Import devices via IPScan.Core
-            MessageBox.Show($"Import from {dialog.FileName} not yet implemented.",
-                "Import Devices", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                var json = await System.IO.File.ReadAllTextAsync(dialog.FileName);
+                var devices = System.Text.Json.JsonSerializer.Deserialize<List<Device>>(json);
+
+                if (devices == null || devices.Count == 0)
+                {
+                    MessageBox.Show("No devices found in the selected file.",
+                        "Import", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Ask for confirmation
+                var result = MessageBox.Show(
+                    $"Found {devices.Count} device(s) in the file.\n\n" +
+                    "This will add them to your existing devices (duplicates by IP will be skipped).\n\n" +
+                    "Continue with import?",
+                    "Confirm Import",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    int imported = 0;
+                    int skipped = 0;
+
+                    foreach (var device in devices)
+                    {
+                        // Check if device already exists by IP
+                        var existing = _devices.FirstOrDefault(d => d.IpAddress == device.IpAddress);
+                        if (existing == null)
+                        {
+                            await _deviceManager.AddDeviceAsync(device);
+                            imported++;
+                        }
+                        else
+                        {
+                            skipped++;
+                        }
+                    }
+
+                    await LoadDevicesAsync();
+
+                    MessageBox.Show($"Import complete:\n\n" +
+                        $"Imported: {imported}\n" +
+                        $"Skipped (duplicates): {skipped}",
+                        "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                    StatusText.Text = $"Imported {imported} devices";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error importing devices: {ex.Message}",
+                    "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 
@@ -516,12 +584,22 @@ public partial class MainWindow : Window
         Close();
     }
 
-    private void Settings_Click(object sender, RoutedEventArgs e)
+    private async void Settings_Click(object sender, RoutedEventArgs e)
     {
-        // TODO: Open settings dialog
-        MessageBox.Show("Settings dialog not yet implemented.\n\nThis will allow you to configure:\n" +
-            "- Scan on startup\n- Default subnet\n- Port list\n- Theme preferences\n- Splash screen timeout",
-            "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+        var settings = await _settingsService.GetSettingsAsync();
+        var dialog = new SettingsWindow(_settingsService, settings)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            // Settings were saved, reload them
+            var updatedSettings = await _settingsService.GetSettingsAsync();
+            ShowOfflineMenuItem.IsChecked = updatedSettings.ShowOfflineDevices;
+            RefreshDeviceTreeView();
+            StatusText.Text = "Settings saved successfully";
+        }
     }
 
     private void ToggleOffline_Click(object sender, RoutedEventArgs e)
@@ -913,19 +991,66 @@ public partial class MainWindow : Window
 
     #region Device Details Events
 
-    private void EditDevice_Click(object sender, RoutedEventArgs e)
+    private async void EditDevice_Click(object sender, RoutedEventArgs e)
     {
-        // TODO: Open device edit dialog
-        MessageBox.Show("Device editing not yet implemented.\n\nThis will allow you to:\n" +
-            "- Rename the device\n- Change device type\n- Add notes",
-            "Edit Device", MessageBoxButton.OK, MessageBoxImage.Information);
+        var selectedItem = DeviceTreeView.SelectedItem as TreeViewItem;
+        if (selectedItem?.Tag is not Device device)
+        {
+            MessageBox.Show("Please select a device to edit.", "Edit Device",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new EditDeviceWindow(device)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            // Save the updated device
+            await _deviceManager.UpdateDeviceAsync(device);
+            await LoadDevicesAsync();
+            StatusText.Text = $"Updated device: {device.DisplayName}";
+        }
     }
 
     private void OpenPort_Click(object sender, RoutedEventArgs e)
     {
-        // TODO: Open port in browser or appropriate application
-        MessageBox.Show("Port opening not yet implemented.\n\nThis will open the device's web interface in your browser.",
-            "Open Port", MessageBoxButton.OK, MessageBoxImage.Information);
+        var selectedItem = DeviceTreeView.SelectedItem as TreeViewItem;
+        if (selectedItem?.Tag is not Device device)
+        {
+            MessageBox.Show("Please select a device first.", "Open Device",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            // Default to HTTPS, fallback to HTTP
+            var url = $"https://{device.IpAddress}";
+
+            var result = MessageBox.Show(
+                $"Open device in browser?\n\n{url}\n\nIf HTTPS doesn't work, try HTTP instead.",
+                "Open Device",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+                StatusText.Text = $"Opening {url}";
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to open browser: {ex.Message}",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void AddCredentials_Click(object sender, RoutedEventArgs e)

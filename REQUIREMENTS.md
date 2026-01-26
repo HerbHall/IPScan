@@ -4,6 +4,53 @@
 
 IPScan is a Windows network device discovery tool that locates HTTP-enabled devices on the local subnet and presents them in an accessible interface for configuration.
 
+## Implementation Status
+
+### Completed Features
+
+#### Core Functionality ✓
+- **Network Scanning**: Async ping sweep of subnet with concurrent operations (configurable, default 100)
+- **Device Discovery**: Automatic detection and storage of devices with IP, hostname, MAC, response time
+- **Device Persistence**: JSON-based storage in `%APPDATA%\IPScan\devices.json`
+- **Settings Management**: JSON-based configuration in `%APPDATA%\IPScan\settings.json`
+- **Real-time Updates**: Live device list population during scans with progress tracking
+
+#### GUI Features ✓
+- **Splash Screen**: Auto-dismiss with configurable timeout, theme-aware, displays version/author info
+- **Main Window**: Responsive WPF interface with device tree, details panel, and status bar
+- **Theme System**: Automatic dark/light mode detection following Windows theme
+- **Dynamic Theming**: Real-time response to Windows theme changes with accent color integration
+- **Device Tree View**: Hierarchical display grouped by online/offline status
+- **Search/Filter**: Real-time search across device name, IP, hostname, and MAC address
+- **Device Details**: Show/hide offline devices toggle, device selection with detail panel
+- **Progress Display**: Real-time scan progress with percentage and device count
+
+#### Window Management ✓
+- **Smart Sizing**: Initial window size adapts to screen (80% of working area, max 1400x900)
+- **Position Memory**: Saves and restores window position, size, and maximized state
+- **Multi-Monitor Support**: Remembers which monitor window was displayed on
+- **Monitor Fallback**: Falls back to primary monitor if saved monitor is unavailable
+- **Position Validation**: Ensures window is visible on screen before restoring position
+- **Startup Modes**:
+  - `RememberLast`: Restore last position/size/state (default)
+  - `AlwaysMaximized`: Always start maximized
+  - `DefaultCentered`: Center with smart default size
+  - `SpecificMonitor`: Start on preferred monitor
+
+### In Progress
+
+#### GUI Dialogs
+- Settings dialog (access via menu/toolbar)
+- Edit device dialog (modify name, notes)
+- Export/Import devices (JSON file operations)
+
+#### Planned Features
+- Port scanning and service detection
+- Device categorization by hardware type
+- Connection type detection (wired/wireless)
+- Credentials management
+- CLI interface
+
 ## Functional Requirements
 
 ### Core Features
@@ -289,15 +336,22 @@ Location: `%APPDATA%\IPScan\settings.json`
   "scanOnStartup": true,
   "subnet": "auto",
   "customSubnet": "",
-  "knownPorts": [21, 22, 23, 53, 80, 135, 139, 161, 389, 443, 445, 515, 548, 554, 631, 902,
-                 1433, 1521, 1883, 1900, 2283, 3000, 3306, 3389, 5000, 5001, 5353, 5432,
-                 5900, 8006, 8080, 8096, 8123, 8443, 9000, 9001, 9100, 19999, 32400],
+  "preferredInterfaceId": "",
   "scanTimeoutMs": 1000,
-  "rescanExistingDevices": false,
+  "maxConcurrentScans": 100,
+  "autoRemoveMissingDevices": false,
+  "missedScansBeforeRemoval": 5,
+  "showOfflineDevices": true,
   "splashTimeoutSeconds": 5,
-  "theme": {
-    "mode": "system",
-    "accentColor": "system"
+  "windowStartup": "RememberLast",
+  "preferredMonitor": "",
+  "lastWindowSettings": {
+    "left": 100,
+    "top": 100,
+    "width": 1200,
+    "height": 800,
+    "isMaximized": false,
+    "monitorDeviceName": "\\\\.\\DISPLAY1"
   },
   "categoryVisibility": {
     "hardware": {
