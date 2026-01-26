@@ -178,6 +178,9 @@ public partial class ColorPickerControl : UserControl
 
     private void UpdatePreview()
     {
+        // Preview brush may not be initialized yet during control construction
+        if (PreviewBrush == null) return;
+
         try
         {
             var r = (byte)RedSlider.Value;
@@ -210,12 +213,18 @@ public partial class ColorPickerControl : UserControl
 
     private void ShowValidationError(string message)
     {
+        // Validation control may not be initialized yet during window construction
+        if (ValidationText == null) return;
+
         ValidationText.Text = message;
         ValidationText.Visibility = Visibility.Visible;
     }
 
     private void HideValidationError()
     {
+        // Validation control may not be initialized yet during window construction
+        if (ValidationText == null) return;
+
         ValidationText.Visibility = Visibility.Collapsed;
     }
 
