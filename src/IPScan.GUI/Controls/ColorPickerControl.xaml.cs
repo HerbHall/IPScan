@@ -64,6 +64,10 @@ public partial class ColorPickerControl : UserControl
     {
         if (_isUpdating) return;
 
+        // Controls may not be initialized yet during construction
+        if (RedTextBox == null || GreenTextBox == null || BlueTextBox == null || HexTextBox == null)
+            return;
+
         _isUpdating = true;
 
         // Update text boxes
@@ -178,8 +182,9 @@ public partial class ColorPickerControl : UserControl
 
     private void UpdatePreview()
     {
-        // Preview brush may not be initialized yet during control construction
-        if (PreviewBrush == null) return;
+        // Controls may not be initialized yet during construction
+        if (PreviewBrush == null || RedSlider == null || GreenSlider == null || BlueSlider == null)
+            return;
 
         try
         {
@@ -197,6 +202,10 @@ public partial class ColorPickerControl : UserControl
 
     private void UpdateSelectedColor()
     {
+        // Controls may not be initialized yet during construction
+        if (RedSlider == null || GreenSlider == null || BlueSlider == null)
+            return;
+
         try
         {
             var r = (byte)RedSlider.Value;
