@@ -90,6 +90,10 @@ public partial class SettingsWindow : Window
 
     private void UpdateColorPickerVisibility()
     {
+        // Check if controls are initialized (may be null during window initialization)
+        if (ColorPickerBorder == null || AccentColorModeComboBox == null)
+            return;
+
         var selectedItem = AccentColorModeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
         if (selectedItem?.Tag?.ToString() == "Custom")
         {
