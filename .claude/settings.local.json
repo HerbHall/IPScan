@@ -20,7 +20,9 @@
       "Bash(claude code skills:*)",
       "Bash(claude skills list)",
       "Skill(run-prompt)",
-      "Skill(run-prompt:*)"
+      "Skill(run-prompt:*)",
+      "Bash(git commit:*)",
+      "Bash(test:*)"
     ]
   }
 }
