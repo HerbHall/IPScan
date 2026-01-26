@@ -1383,47 +1383,58 @@ public partial class MainWindow : Window
         // Cancel previous timer if it exists
         _notesAutoSaveTimer?.Dispose();
 
+        // Capture the current device and notes text at the time of the event
+        var deviceToSave = _selectedDevice;
+        var notesText = DeviceNotesText?.Text ?? string.Empty;
+
         // Create new timer to save after 1 second of inactivity
         _notesAutoSaveTimer = new System.Threading.Timer(async _ =>
         {
             await Dispatcher.InvokeAsync(async () =>
             {
-                if (_selectedDevice == null)
+                // Defensive null checks
+                if (deviceToSave == null || _deviceManager == null)
                     return;
 
                 try
                 {
                     // Update the device notes
-                    _selectedDevice.Notes = DeviceNotesText.Text;
+                    deviceToSave.Notes = notesText;
 
                     // Save to storage
-                    await _deviceManager.UpdateDeviceAsync(_selectedDevice);
+                    await _deviceManager.UpdateDeviceAsync(deviceToSave);
 
                     // Update the device in the local collection
                     lock (_devicesLock)
                     {
-                        var existing = _devices.FirstOrDefault(d => d.Id == _selectedDevice.Id);
+                        var existing = _devices.FirstOrDefault(d => d.Id == deviceToSave.Id);
                         if (existing != null)
                         {
                             var index = _devices.IndexOf(existing);
-                            _devices[index] = _selectedDevice;
+                            _devices[index] = deviceToSave;
                         }
                     }
 
                     // Show brief confirmation in status bar
-                    var previousStatus = StatusText.Text;
-                    StatusText.Text = "Notes saved";
-
-                    // Restore previous status after 2 seconds
-                    await System.Threading.Tasks.Task.Delay(2000);
-                    if (StatusText.Text == "Notes saved")
+                    if (StatusText != null)
                     {
-                        StatusText.Text = previousStatus;
+                        var previousStatus = StatusText.Text;
+                        StatusText.Text = "Notes saved";
+
+                        // Restore previous status after 2 seconds
+                        await System.Threading.Tasks.Task.Delay(2000);
+                        if (StatusText.Text == "Notes saved")
+                        {
+                            StatusText.Text = previousStatus;
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    StatusText.Text = $"Failed to save notes: {ex.Message}";
+                    if (StatusText != null)
+                    {
+                        StatusText.Text = $"Failed to save notes: {ex.Message}";
+                    }
                 }
             });
         }, null, 1000, System.Threading.Timeout.Infinite);
