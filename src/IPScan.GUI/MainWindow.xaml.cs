@@ -31,12 +31,16 @@ public partial class MainWindow : Window
     // Core services
     private readonly IDeviceManager _deviceManager;
     private readonly ISettingsService _settingsService;
+    private readonly JsonDeviceRepository _deviceRepository;
+    private readonly JsonSettingsService _jsonSettingsService;
     private CancellationTokenSource? _scanCancellationTokenSource;
     private bool _isScanning;
 
     // Device collection for UI binding
     private readonly List<Device> _devices = new();
     private readonly object _devicesLock = new();
+    private Device? _selectedDevice;
+    private System.Threading.Timer? _notesAutoSaveTimer;
 
     public MainWindow()
     {
@@ -52,13 +56,14 @@ public partial class MainWindow : Window
         var subnetCalculator = new SubnetCalculator();
         var networkInterfaceService = new NetworkInterfaceService(loggerFactory.CreateLogger<NetworkInterfaceService>());
         var networkScanner = new NetworkScanner(subnetCalculator, loggerFactory.CreateLogger<NetworkScanner>());
-        var deviceRepository = new JsonDeviceRepository(loggerFactory.CreateLogger<JsonDeviceRepository>());
-        _settingsService = new JsonSettingsService(loggerFactory.CreateLogger<JsonSettingsService>());
+        _deviceRepository = new JsonDeviceRepository(loggerFactory.CreateLogger<JsonDeviceRepository>());
+        _jsonSettingsService = new JsonSettingsService(loggerFactory.CreateLogger<JsonSettingsService>());
+        _settingsService = _jsonSettingsService;
 
         _deviceManager = new DeviceManager(
             networkScanner,
             networkInterfaceService,
-            deviceRepository,
+            _deviceRepository,
             _settingsService,
             subnetCalculator,
             loggerFactory.CreateLogger<DeviceManager>());
@@ -329,6 +334,9 @@ public partial class MainWindow : Window
         // Load existing devices from storage
         await LoadDevicesAsync();
 
+        // Check storage availability and show warning if needed
+        CheckStorageAvailability();
+
         // Check if auto-scan is enabled
         var settings = await _settingsService.GetSettingsAsync();
         if (settings.ScanOnStartup)
@@ -360,6 +368,101 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StatusText.Text = $"Error loading devices: {ex.Message}";
+        }
+    }
+
+    private void CheckStorageAvailability()
+    {
+        // Check if either settings or device storage is unavailable
+        var settingsAvailable = _jsonSettingsService.IsStorageAvailable;
+        var devicesAvailable = _deviceRepository.IsStorageAvailable;
+
+        if (!settingsAvailable || !devicesAvailable)
+        {
+            StorageWarningBanner.Visibility = Visibility.Visible;
+        }
+    }
+
+    private async void ChooseStorageLocation_Click(object sender, RoutedEventArgs e)
+    {
+        // Let user choose a custom storage location
+        var dialog = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "Choose a location to save IPScan data",
+            ShowNewFolderButton = true
+        };
+
+        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            var selectedPath = dialog.SelectedPath;
+
+            try
+            {
+                // Test if we can write to this location
+                var testFile = System.IO.Path.Combine(selectedPath, ".ipscan_test");
+                await System.IO.File.WriteAllTextAsync(testFile, "test");
+                System.IO.File.Delete(testFile);
+
+                // Update storage paths and try again
+                var settingsPath = System.IO.Path.Combine(selectedPath, "settings.json");
+                var devicesPath = System.IO.Path.Combine(selectedPath, "devices.json");
+
+                // Create new instances with custom paths
+                var loggerFactory = NullLoggerFactory.Instance;
+                var newSettingsService = new JsonSettingsService(
+                    loggerFactory.CreateLogger<JsonSettingsService>(),
+                    settingsPath);
+                var newDeviceRepository = new JsonDeviceRepository(
+                    loggerFactory.CreateLogger<JsonDeviceRepository>(),
+                    devicesPath);
+
+                // Test saving to new location
+                var currentSettings = await _settingsService.GetSettingsAsync();
+                await newSettingsService.SaveSettingsAsync(currentSettings);
+
+                var currentDevices = await _deviceManager.GetAllDevicesAsync();
+                await newDeviceRepository.SaveAsync(new DeviceList { Devices = currentDevices.ToList() });
+
+                MessageBox.Show(
+                    $"Storage location updated successfully!\n\nData will now be saved to:\n{selectedPath}\n\n" +
+                    "Please restart IPScan for changes to take effect.",
+                    "Storage Location Changed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                StorageWarningBanner.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Unable to use selected location:\n\n{ex.Message}\n\n" +
+                    "Please choose a different location or continue in memory-only mode.",
+                    "Storage Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+    }
+
+    private void DismissStorageWarning_Click(object sender, RoutedEventArgs e)
+    {
+        // User acknowledges memory-only mode, hide the banner
+        var result = MessageBox.Show(
+            "Continue without saving?\n\n" +
+            "Your devices and settings will only be stored in memory and will be lost when you close the application.\n\n" +
+            "You can choose a storage location later from the File menu.",
+            "Continue in Memory-Only Mode",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            // Enable memory-only mode explicitly
+            _jsonSettingsService.EnableMemoryOnlyMode();
+            _deviceRepository.EnableMemoryOnlyMode();
+
+            StorageWarningBanner.Visibility = Visibility.Collapsed;
+            StatusText.Text = "Running in memory-only mode - changes will not be saved";
         }
     }
 
@@ -1152,6 +1255,7 @@ public partial class MainWindow : Window
         if (selectedItem == null || selectedItem.Items.Count > 0)
         {
             // Category node selected or nothing selected
+            _selectedDevice = null;
             NoSelectionPanel.Visibility = Visibility.Visible;
             SelectedDevicePanel.Visibility = Visibility.Collapsed;
             return;
@@ -1161,11 +1265,13 @@ public partial class MainWindow : Window
         var device = selectedItem.Tag as Device;
         if (device == null)
         {
+            _selectedDevice = null;
             NoSelectionPanel.Visibility = Visibility.Visible;
             SelectedDevicePanel.Visibility = Visibility.Collapsed;
             return;
         }
 
+        _selectedDevice = device;
         NoSelectionPanel.Visibility = Visibility.Collapsed;
         SelectedDevicePanel.Visibility = Visibility.Visible;
 
@@ -1266,6 +1372,61 @@ public partial class MainWindow : Window
         MessageBox.Show("Credentials management not yet implemented.\n\n" +
             "This will securely store login credentials using Windows Credential Manager.",
             "Add Credentials", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void DeviceNotesText_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        // Auto-save device notes with debouncing (wait 1 second after user stops typing)
+        if (_selectedDevice == null)
+            return;
+
+        // Cancel previous timer if it exists
+        _notesAutoSaveTimer?.Dispose();
+
+        // Create new timer to save after 1 second of inactivity
+        _notesAutoSaveTimer = new System.Threading.Timer(async _ =>
+        {
+            await Dispatcher.InvokeAsync(async () =>
+            {
+                if (_selectedDevice == null)
+                    return;
+
+                try
+                {
+                    // Update the device notes
+                    _selectedDevice.Notes = DeviceNotesText.Text;
+
+                    // Save to storage
+                    await _deviceManager.UpdateDeviceAsync(_selectedDevice);
+
+                    // Update the device in the local collection
+                    lock (_devicesLock)
+                    {
+                        var existing = _devices.FirstOrDefault(d => d.Id == _selectedDevice.Id);
+                        if (existing != null)
+                        {
+                            var index = _devices.IndexOf(existing);
+                            _devices[index] = _selectedDevice;
+                        }
+                    }
+
+                    // Show brief confirmation in status bar
+                    var previousStatus = StatusText.Text;
+                    StatusText.Text = "Notes saved";
+
+                    // Restore previous status after 2 seconds
+                    await System.Threading.Tasks.Task.Delay(2000);
+                    if (StatusText.Text == "Notes saved")
+                    {
+                        StatusText.Text = previousStatus;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    StatusText.Text = $"Failed to save notes: {ex.Message}";
+                }
+            });
+        }, null, 1000, System.Threading.Timeout.Infinite);
     }
 
     #endregion

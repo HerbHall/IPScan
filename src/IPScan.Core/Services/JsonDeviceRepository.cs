@@ -14,6 +14,8 @@ public class JsonDeviceRepository : IDeviceRepository
     private readonly ILogger<JsonDeviceRepository> _logger;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private DeviceList? _cache;
+    private bool _memoryOnlyMode;
+    private bool _storageAvailable = true;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -26,6 +28,25 @@ public class JsonDeviceRepository : IDeviceRepository
     {
         _logger = logger;
         _filePath = filePath ?? GetDefaultFilePath();
+    }
+
+    /// <summary>
+    /// Gets whether storage is available (not in memory-only mode).
+    /// </summary>
+    public bool IsStorageAvailable => _storageAvailable && !_memoryOnlyMode;
+
+    /// <summary>
+    /// Gets whether the service is running in memory-only mode.
+    /// </summary>
+    public bool IsMemoryOnlyMode => _memoryOnlyMode;
+
+    /// <summary>
+    /// Enables memory-only mode (no file persistence).
+    /// </summary>
+    public void EnableMemoryOnlyMode()
+    {
+        _memoryOnlyMode = true;
+        _logger.LogWarning("Enabled memory-only mode - devices will not be persisted");
     }
 
     private static string GetDefaultFilePath()
@@ -75,16 +96,35 @@ public class JsonDeviceRepository : IDeviceRepository
         await _lock.WaitAsync(cancellationToken);
         try
         {
-            var directory = Path.GetDirectoryName(_filePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            // Always update cache
+            _cache = deviceList;
+
+            // Skip file I/O if in memory-only mode
+            if (_memoryOnlyMode)
             {
-                Directory.CreateDirectory(directory);
+                _logger.LogDebug("Device list updated in memory (memory-only mode)");
+                return;
             }
 
-            var json = JsonSerializer.Serialize(deviceList, JsonOptions);
-            await File.WriteAllTextAsync(_filePath, json, cancellationToken);
-            _cache = deviceList;
-            _logger.LogDebug("Saved {Count} devices to {Path}", deviceList.Devices.Count, _filePath);
+            try
+            {
+                var directory = Path.GetDirectoryName(_filePath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                var json = JsonSerializer.Serialize(deviceList, JsonOptions);
+                await File.WriteAllTextAsync(_filePath, json, cancellationToken);
+                _storageAvailable = true;
+                _logger.LogDebug("Saved {Count} devices to {Path}", deviceList.Devices.Count, _filePath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _storageAvailable = false;
+                _logger.LogError(ex, "Failed to save devices to {Path} - storage may be unavailable", _filePath);
+                throw new InvalidOperationException($"Unable to save devices: {ex.Message}", ex);
+            }
         }
         finally
         {

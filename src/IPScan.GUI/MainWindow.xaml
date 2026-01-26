@@ -105,6 +105,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Menu -->
             <RowDefinition Height="Auto"/>  <!-- Toolbar -->
+            <RowDefinition Height="Auto"/>  <!-- Warning Banner -->
             <RowDefinition Height="*"/>     <!-- Content -->
             <RowDefinition Height="Auto"/>  <!-- Status Bar -->
         </Grid.RowDefinitions>
@@ -258,8 +259,45 @@
             </Grid>
         </Border>
 
+        <!-- Warning Banner (Storage Unavailable) -->
+        <Border x:Name="StorageWarningBanner" Grid.Row="2" Visibility="Collapsed"
+                Background="#FFF4CE" BorderBrush="#E7C200" BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Warning Icon -->
+                <TextBlock Grid.Column="0" Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets"
+                           FontSize="16" VerticalAlignment="Center"
+                           Foreground="#8B6F00" Margin="0,0,12,0"/>
+
+                <!-- Warning Message -->
+                <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                           Foreground="#8B6F00" TextWrapping="Wrap">
+                    <Run FontWeight="SemiBold">Storage Unavailable:</Run>
+                    <Run Text=" Running in memory-only mode. Changes will not be saved."/>
+                </TextBlock>
+
+                <!-- Actions -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="ChooseStorageLocationButton" Content="Choose Location"
+                            Style="{StaticResource ToolbarButtonStyle}"
+                            Click="ChooseStorageLocation_Click"
+                            Margin="0,0,8,0"/>
+                    <Button x:Name="DismissWarningButton" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                            Style="{StaticResource ToolbarButtonStyle}"
+                            ToolTip="Dismiss (continue in memory-only mode)"
+                            Click="DismissStorageWarning_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Main Content -->
-        <Grid Grid.Row="2" Margin="8">
+        <Grid Grid.Row="3" Margin="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="300" MinWidth="200"/>
                 <ColumnDefinition Width="Auto"/>
@@ -537,7 +575,8 @@
                                          Background="{DynamicResource WindowBackgroundBrush}"
                                          BorderBrush="{DynamicResource PanelBorderBrush}"
                                          Foreground="{DynamicResource TextBrush}"
-                                         Text="[Device notes will appear here]"/>
+                                         Text="[Device notes will appear here]"
+                                         TextChanged="DeviceNotesText_TextChanged"/>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
@@ -546,7 +585,7 @@
         </Grid>
 
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="12,6">
+        <Border Grid.Row="4" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="12,6">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
