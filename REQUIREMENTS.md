@@ -77,12 +77,11 @@ IPScan is a Windows network device discovery tool that locates HTTP-enabled devi
    - Update settings from CLI or GUI.
 
 4. **GUI Theming**
-   - Follow Windows system theme by default (light/dark mode)
    - Splash screen, logo.png, and windows icons should have an iconic CRT green theme, high-contrast, monochrome display style of 1970s-80s computer terminals, typically using P1 phosphor for a bright green, "glowing" look on a black background.
    - Use iconic CRT green theme for highlights and interactive elements with settings to use Windows accent colors 
    - Respond to real-time theme changes from Windows
    - User override options in Settings:
-     - Theme: System (default), Light, Dark, iconic CRT
+     - Theme: Windows System, Light, Dark, iconic CRT (Default)
      - Accent Color: iconic CRT, System (default), or user custom color picker
    - Persist theme preferences across sessions
 

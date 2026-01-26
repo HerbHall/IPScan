@@ -46,9 +46,6 @@ public partial class MainWindow : Window
         _uiSettings = new UISettings();
         _uiSettings.ColorValuesChanged += UiSettings_ColorValuesChanged;
 
-        // Apply initial theme
-        DetectAndApplyTheme();
-
         // Initialize Core services
         var loggerFactory = NullLoggerFactory.Instance;
 
@@ -65,6 +62,9 @@ public partial class MainWindow : Window
             _settingsService,
             subnetCalculator,
             loggerFactory.CreateLogger<DeviceManager>());
+
+        // Apply initial theme (after services are initialized)
+        DetectAndApplyTheme();
 
         // Subscribe to DeviceManager events
         _deviceManager.ScanStarted += DeviceManager_ScanStarted;
