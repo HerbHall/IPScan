@@ -46,7 +46,10 @@ public class NetworkInterfaceService : INetworkInterfaceService
     public IReadOnlyList<NetworkInterfaceInfo> GetActiveInterfaces()
     {
         return GetAllInterfaces()
-            .Where(i => i.IsUp && !string.IsNullOrEmpty(i.IpAddress) && i.InterfaceType != Models.NetworkInterfaceType.Loopback)
+            .Where(i => i.IsUp
+                && !string.IsNullOrEmpty(i.IpAddress)
+                && i.InterfaceType != Models.NetworkInterfaceType.Loopback
+                && !i.IsVpn)  // Exclude VPN interfaces by default per DECISIONS.md
             .ToList();
     }
 
@@ -55,33 +58,61 @@ public class NetworkInterfaceService : INetworkInterfaceService
     {
         var activeInterfaces = GetActiveInterfaces();
 
-        // Priority 1: First Ethernet interface
-        var ethernet = activeInterfaces
+        // CRITICAL: Prioritize interfaces with a gateway (default route)
+        // This identifies the primary routing interface for the network
+        var interfacesWithGateway = activeInterfaces
+            .Where(i => !string.IsNullOrEmpty(i.Gateway))
+            .ToList();
+
+        // Priority 1: Ethernet interface with gateway (wired connection is most stable)
+        var ethernet = interfacesWithGateway
             .FirstOrDefault(i => i.InterfaceType == Models.NetworkInterfaceType.Ethernet);
         if (ethernet != null)
         {
-            _logger.LogDebug("Selected default interface: {Name} (Ethernet)", ethernet.Name);
+            _logger.LogInformation("Selected default interface: {Name} (Ethernet with gateway {Gateway})",
+                ethernet.Name, ethernet.Gateway);
             return ethernet;
         }
 
-        // Priority 2: First Wireless interface
-        var wireless = activeInterfaces
+        // Priority 2: Wireless interface with gateway
+        var wireless = interfacesWithGateway
             .FirstOrDefault(i => i.InterfaceType == Models.NetworkInterfaceType.Wireless);
         if (wireless != null)
         {
-            _logger.LogDebug("Selected default interface: {Name} (Wireless)", wireless.Name);
+            _logger.LogInformation("Selected default interface: {Name} (Wireless with gateway {Gateway})",
+                wireless.Name, wireless.Gateway);
             return wireless;
         }
 
-        // Priority 3: Any active interface
+        // Priority 3: Any interface with gateway
+        var anyWithGateway = interfacesWithGateway.FirstOrDefault();
+        if (anyWithGateway != null)
+        {
+            _logger.LogInformation("Selected default interface: {Name} ({Type} with gateway {Gateway})",
+                anyWithGateway.Name, anyWithGateway.InterfaceType, anyWithGateway.Gateway);
+            return anyWithGateway;
+        }
+
+        // Fallback: Try Ethernet without gateway (unusual but possible)
+        var ethernetNoGateway = activeInterfaces
+            .FirstOrDefault(i => i.InterfaceType == Models.NetworkInterfaceType.Ethernet);
+        if (ethernetNoGateway != null)
+        {
+            _logger.LogWarning("Selected default interface: {Name} (Ethernet but no gateway configured)",
+                ethernetNoGateway.Name);
+            return ethernetNoGateway;
+        }
+
+        // Last resort: Any active interface
         var any = activeInterfaces.FirstOrDefault();
         if (any != null)
         {
-            _logger.LogDebug("Selected default interface: {Name} ({Type})", any.Name, any.InterfaceType);
+            _logger.LogWarning("Selected default interface: {Name} ({Type} - no gateway found)",
+                any.Name, any.InterfaceType);
             return any;
         }
 
-        _logger.LogWarning("No suitable network interface found");
+        _logger.LogError("No suitable network interface found");
         return null;
     }
 
@@ -125,18 +156,22 @@ public class NetworkInterfaceService : INetworkInterfaceService
             var gateway = properties.GatewayAddresses?
                 .FirstOrDefault(g => g?.Address?.AddressFamily == AddressFamily.InterNetwork);
 
+            var isVpn = IsVpnInterface(nic);
+            var interfaceType = isVpn ? Models.NetworkInterfaceType.Vpn : ConvertInterfaceType(nic.NetworkInterfaceType);
+
             return new NetworkInterfaceInfo
             {
                 Id = nic.Id,
                 Name = nic.Name,
                 Description = nic.Description,
-                InterfaceType = ConvertInterfaceType(nic.NetworkInterfaceType),
+                InterfaceType = interfaceType,
                 IpAddress = ipv4Address?.Address?.ToString() ?? string.Empty,
                 SubnetMask = ipv4Address?.IPv4Mask?.ToString() ?? string.Empty,
                 Gateway = gateway?.Address?.ToString(),
                 MacAddress = FormatMacAddress(nic.GetPhysicalAddress()),
                 IsUp = nic.OperationalStatus == OperationalStatus.Up,
-                Speed = nic.Speed
+                Speed = nic.Speed,
+                IsVpn = isVpn
             };
         }
         catch (Exception ex)
@@ -168,5 +203,60 @@ public class NetworkInterfaceService : INetworkInterfaceService
             return string.Empty;
 
         return string.Join(":", bytes.Select(b => b.ToString("X2")));
+    }
+
+    /// <summary>
+    /// Detects if an interface is a VPN based on name and description patterns.
+    /// Checks for common VPN software: Tailscale, Wireguard, OpenVPN, PPTP, L2TP, etc.
+    /// </summary>
+    private static bool IsVpnInterface(NetInterface nic)
+    {
+        var name = nic.Name.ToLowerInvariant();
+        var description = nic.Description.ToLowerInvariant();
+
+        // VPN interface patterns (name or description)
+        string[] vpnPatterns =
+        {
+            "tailscale",       // Tailscale VPN
+            "wireguard",       // Wireguard VPN
+            "wg",              // Wireguard short name
+            "openvpn",         // OpenVPN
+            "tap-windows",     // OpenVPN TAP adapter
+            "tap0901",         // OpenVPN TAP adapter version
+            "tun",             // Generic tunnel interface
+            "vpn",             // Generic VPN
+            "pptp",            // Point-to-Point Tunneling Protocol
+            "l2tp",            // Layer 2 Tunneling Protocol
+            "ipsec",           // IPSec VPN
+            "cisco anyconnect",// Cisco AnyConnect
+            "sonicwall",       // SonicWall VPN
+            "fortinet",        // FortiClient VPN
+            "palo alto",       // Palo Alto GlobalProtect
+            "globalprotect",   // Palo Alto GlobalProtect
+            "checkpoint",      // Check Point VPN
+            "nordvpn",         // NordVPN
+            "expressvpn",      // ExpressVPN
+            "protonvpn",       // ProtonVPN
+            "private internet access", // PIA VPN
+            "hamachi",         // LogMeIn Hamachi
+            "zerotier",        // ZeroTier
+            "virtual private", // Generic "Virtual Private Network"
+        };
+
+        foreach (var pattern in vpnPatterns)
+        {
+            if (name.Contains(pattern) || description.Contains(pattern))
+            {
+                return true;
+            }
+        }
+
+        // Additional check: if it's a tunnel interface type, likely a VPN
+        if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Tunnel)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

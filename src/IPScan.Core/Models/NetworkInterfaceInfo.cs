@@ -54,6 +54,12 @@ public class NetworkInterfaceInfo
     /// Speed of the interface in bits per second.
     /// </summary>
     public long Speed { get; set; }
+
+    /// <summary>
+    /// Whether this interface is a VPN interface (Tailscale, Wireguard, OpenVPN, etc.).
+    /// VPN interfaces are excluded from automatic scanning by default.
+    /// </summary>
+    public bool IsVpn { get; set; }
 }
 
 /// <summary>
@@ -66,5 +72,6 @@ public enum NetworkInterfaceType
     Wireless,
     Loopback,
     Virtual,
+    Vpn,
     Other
 }

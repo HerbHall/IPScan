@@ -22,6 +22,7 @@ class Program
             "show" => HandleShow(remainingArgs),
             "open" => HandleOpen(remainingArgs),
             "settings" => HandleSettings(remainingArgs),
+            "test-interfaces" => HandleTestInterfaces(),
             "gui" => LaunchGui(),
             "--help" or "-h" or "help" => ShowHelp(),
             "--version" or "-v" => ShowVersion(),
@@ -48,6 +49,7 @@ class Program
         Console.WriteLine("  show <device>    Show device details");
         Console.WriteLine("  open <device>    Open device in browser");
         Console.WriteLine("  settings         View or modify settings");
+        Console.WriteLine("  test-interfaces  Test network interface detection (dev/debug)");
         Console.WriteLine("  gui              Launch GUI application");
         Console.WriteLine();
         Console.WriteLine("Options:");
@@ -283,5 +285,20 @@ class Program
         // TODO: Write setting using IPScan.Core
         Console.WriteLine("[Settings update not yet implemented - Core services pending]");
         return 0;
+    }
+
+    static int HandleTestInterfaces()
+    {
+        try
+        {
+            TestInterfaceDetection.Run();
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error testing interfaces: {ex.Message}");
+            Console.WriteLine(ex.StackTrace);
+            return 1;
+        }
     }
 }
