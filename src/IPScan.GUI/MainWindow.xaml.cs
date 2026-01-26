@@ -424,6 +424,34 @@ public partial class MainWindow : Window
         Resources["StatusBarBackgroundBrush"] = accentBrush;
     }
 
+    private void ApplyThemeToWindow(Window window)
+    {
+        // Copy current theme resources to child window
+        if (_isDarkMode)
+        {
+            // Dark theme
+            window.Resources["WindowBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(30, 30, 30));
+            window.Resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(45, 45, 45));
+            window.Resources["PanelBorderBrush"] = new SolidColorBrush(Color.FromRgb(60, 60, 60));
+            window.Resources["TitleBrush"] = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+            window.Resources["TextBrush"] = new SolidColorBrush(Color.FromRgb(230, 230, 230));
+            window.Resources["SecondaryTextBrush"] = new SolidColorBrush(Color.FromRgb(180, 180, 180));
+        }
+        else
+        {
+            // Light theme
+            window.Resources["WindowBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(243, 243, 243));
+            window.Resources["PanelBackgroundBrush"] = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+            window.Resources["PanelBorderBrush"] = new SolidColorBrush(Color.FromRgb(224, 224, 224));
+            window.Resources["TitleBrush"] = new SolidColorBrush(Color.FromRgb(26, 26, 26));
+            window.Resources["TextBrush"] = new SolidColorBrush(Color.FromRgb(51, 51, 51));
+            window.Resources["SecondaryTextBrush"] = new SolidColorBrush(Color.FromRgb(102, 102, 102));
+        }
+
+        // Apply accent color
+        window.Resources["AccentBrush"] = Resources["AccentBrush"];
+    }
+
     #endregion
 
     #region Menu Event Handlers
@@ -591,6 +619,9 @@ public partial class MainWindow : Window
         {
             Owner = this
         };
+
+        // Apply current theme to dialog
+        ApplyThemeToWindow(dialog);
 
         if (dialog.ShowDialog() == true)
         {
@@ -1005,6 +1036,9 @@ public partial class MainWindow : Window
         {
             Owner = this
         };
+
+        // Apply current theme to dialog
+        ApplyThemeToWindow(dialog);
 
         if (dialog.ShowDialog() == true)
         {
