@@ -121,9 +121,15 @@ public partial class MainWindow : Window
 
     private void ApplySmartDefaultSize()
     {
-        // Get primary screen dimensions
+        // Get primary screen dimensions - defensive null check
         var primaryScreen = WinForms.Screen.PrimaryScreen;
-        if (primaryScreen == null) return;
+        if (primaryScreen == null)
+        {
+            // Fallback to reasonable defaults
+            Width = Math.Max(MinWidth, 1200);
+            Height = Math.Max(MinHeight, 800);
+            return;
+        }
 
         var workingArea = primaryScreen.WorkingArea;
 
@@ -217,14 +223,22 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(deviceName))
             return null;
 
-        return WinForms.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == deviceName);
+        // Defensive null check - AllScreens may be null in rare cases
+        return WinForms.Screen.AllScreens?.FirstOrDefault(s => s?.DeviceName == deviceName);
     }
 
     private static bool IsWindowVisibleOnAnyScreen(System.Drawing.Rectangle windowRect)
     {
         // Check if at least 100x100 pixels of the window are visible on any screen
-        foreach (var screen in WinForms.Screen.AllScreens)
+        // Defensive null check - AllScreens may be null in rare cases
+        var screens = WinForms.Screen.AllScreens;
+        if (screens == null)
+            return false;
+
+        foreach (var screen in screens)
         {
+            if (screen == null)
+                continue;
             var intersection = System.Drawing.Rectangle.Intersect(screen.WorkingArea, windowRect);
             if (intersection.Width >= 100 && intersection.Height >= 100)
             {
@@ -240,8 +254,15 @@ public partial class MainWindow : Window
         var windowInteropHelper = new WindowInteropHelper(this);
         var hMonitor = NativeMethods.MonitorFromWindow(windowInteropHelper.Handle, NativeMethods.MONITOR_DEFAULTTONEAREST);
 
-        foreach (var screen in WinForms.Screen.AllScreens)
+        // Defensive null check - AllScreens may be null in rare cases
+        var screens = WinForms.Screen.AllScreens;
+        if (screens == null)
+            return WinForms.Screen.PrimaryScreen?.DeviceName ?? string.Empty;
+
+        foreach (var screen in screens)
         {
+            if (screen == null)
+                continue;
             // Compare by checking if the screen contains the window center
             var windowCenter = new System.Drawing.Point(
                 (int)(Left + Width / 2),
@@ -258,6 +279,10 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        // Defensive null check - _settingsService must be initialized before use
+        if (_settingsService == null)
+            return;
+
         // Save window state
         var settings = await _settingsService.GetSettingsAsync();
 
@@ -689,6 +714,7 @@ public partial class MainWindow : Window
                 var json = await System.IO.File.ReadAllTextAsync(dialog.FileName);
                 var devices = System.Text.Json.JsonSerializer.Deserialize<List<Device>>(json);
 
+                // Defensive null check - deserialization may return null
                 if (devices == null || devices.Count == 0)
                 {
                     MessageBox.Show("No devices found in the selected file.",
@@ -712,8 +738,15 @@ public partial class MainWindow : Window
 
                     foreach (var device in devices)
                     {
+                        // Defensive null check - skip null devices in import
+                        if (device == null || string.IsNullOrEmpty(device.IpAddress))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
                         // Check if device already exists by IP
-                        var existing = _devices.FirstOrDefault(d => d.IpAddress == device.IpAddress);
+                        var existing = _devices.FirstOrDefault(d => d?.IpAddress == device.IpAddress);
                         if (existing == null)
                         {
                             await _deviceManager.AddDeviceAsync(device);
@@ -1044,17 +1077,18 @@ public partial class MainWindow : Window
 
     private TreeViewItem CreateDeviceTreeItem(Device device)
     {
+        // Resource brushes may not be initialized yet during window construction
         var statusColor = device.IsOnline
-            ? (SolidColorBrush)Resources["OnlineStatusBrush"]
-            : (SolidColorBrush)Resources["OfflineStatusBrush"];
+            ? (Resources["OnlineStatusBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(0, 255, 0)))
+            : (Resources["OfflineStatusBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(128, 128, 128)));
 
         var textColor = device.IsOnline
-            ? (SolidColorBrush)Resources["TextBrush"]
-            : (SolidColorBrush)Resources["DisabledTextBrush"];
+            ? (Resources["TextBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(51, 51, 51)))
+            : (Resources["DisabledTextBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(153, 153, 153)));
 
         var secondaryColor = device.IsOnline
-            ? (SolidColorBrush)Resources["SecondaryTextBrush"]
-            : (SolidColorBrush)Resources["DisabledTextBrush"];
+            ? (Resources["SecondaryTextBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(102, 102, 102)))
+            : (Resources["DisabledTextBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(153, 153, 153)));
 
         var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
 
@@ -1144,15 +1178,15 @@ public partial class MainWindow : Window
         DeviceLastSeenText.Text = device.LastSeen.ToLocalTime().ToString("MMM dd, yyyy h:mm tt");
         DeviceNotesText.Text = device.Notes ?? "";
 
-        // Update status indicator
+        // Update status indicator (resources may not be initialized yet)
         if (device.IsOnline)
         {
-            DeviceStatusIndicator.Fill = (SolidColorBrush)Resources["OnlineStatusBrush"];
+            DeviceStatusIndicator.Fill = Resources["OnlineStatusBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(0, 255, 0));
             DeviceStatusText.Text = "Online";
         }
         else
         {
-            DeviceStatusIndicator.Fill = (SolidColorBrush)Resources["OfflineStatusBrush"];
+            DeviceStatusIndicator.Fill = Resources["OfflineStatusBrush"] as SolidColorBrush ?? new SolidColorBrush(Color.FromRgb(128, 128, 128));
             DeviceStatusText.Text = "Offline";
         }
     }

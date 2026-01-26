@@ -118,11 +118,12 @@ public class NetworkInterfaceService : INetworkInterfaceService
         try
         {
             var properties = nic.GetIPProperties();
-            var ipv4Address = properties.UnicastAddresses
-                .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetwork);
+            // Defensive null check - UnicastAddresses and GatewayAddresses may be null
+            var ipv4Address = properties.UnicastAddresses?
+                .FirstOrDefault(a => a?.Address?.AddressFamily == AddressFamily.InterNetwork);
 
-            var gateway = properties.GatewayAddresses
-                .FirstOrDefault(g => g.Address.AddressFamily == AddressFamily.InterNetwork);
+            var gateway = properties.GatewayAddresses?
+                .FirstOrDefault(g => g?.Address?.AddressFamily == AddressFamily.InterNetwork);
 
             return new NetworkInterfaceInfo
             {
@@ -130,9 +131,9 @@ public class NetworkInterfaceService : INetworkInterfaceService
                 Name = nic.Name,
                 Description = nic.Description,
                 InterfaceType = ConvertInterfaceType(nic.NetworkInterfaceType),
-                IpAddress = ipv4Address?.Address.ToString() ?? string.Empty,
+                IpAddress = ipv4Address?.Address?.ToString() ?? string.Empty,
                 SubnetMask = ipv4Address?.IPv4Mask?.ToString() ?? string.Empty,
-                Gateway = gateway?.Address.ToString(),
+                Gateway = gateway?.Address?.ToString(),
                 MacAddress = FormatMacAddress(nic.GetPhysicalAddress()),
                 IsUp = nic.OperationalStatus == OperationalStatus.Up,
                 Speed = nic.Speed

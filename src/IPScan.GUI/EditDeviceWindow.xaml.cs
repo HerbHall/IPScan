@@ -17,13 +17,23 @@ public partial class EditDeviceWindow : Window
 
     private void LoadDevice()
     {
-        DeviceIPText.Text = Device.IpAddress;
-        DeviceNameTextBox.Text = Device.Name;
-        NotesTextBox.Text = Device.Notes ?? string.Empty;
+        // Defensive null checks - controls may not be initialized during construction
+        if (DeviceIPText != null)
+            DeviceIPText.Text = Device.IpAddress;
+
+        if (DeviceNameTextBox != null)
+            DeviceNameTextBox.Text = Device.Name;
+
+        if (NotesTextBox != null)
+            NotesTextBox.Text = Device.Notes ?? string.Empty;
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        // Defensive null checks - controls must be initialized before validation
+        if (DeviceNameTextBox == null || NotesTextBox == null)
+            return;
+
         // Validate
         if (string.IsNullOrWhiteSpace(DeviceNameTextBox.Text))
         {
