@@ -4,26 +4,75 @@
 
 IPScan is a Windows network device discovery tool that locates HTTP-enabled devices on the local subnet and presents them in an accessible interface for configuration.
 
+**Current Project Status**: The application has a complete GUI framework with theming support, but core network scanning functionality is not yet implemented. The project is in early development with foundational architecture in place.
+
+## Quick Start for Developers
+
+### Building the Project
+
+```bash
+# Navigate to project root
+cd d:\Code Projects\IPScan
+
+# Build all projects
+dotnet build src/IPScan.Core/IPScan.Core.csproj
+dotnet build src/IPScan.GUI/IPScan.GUI.csproj
+dotnet build src/IPScan.CLI/IPScan.CLI.csproj
+
+# Run the GUI (to see current state)
+dotnet run --project src/IPScan.GUI/IPScan.GUI.csproj
+```
+
+### What Works Now
+- ✓ GUI application launches with splash screen
+- ✓ Theme system (CRT Green, Light, Dark, Windows System)
+- ✓ Settings dialog with theme customization
+- ✓ Edit device dialog (UI only, no backend)
+- ✓ Window position/size memory across sessions
+- ✓ Multi-monitor support
+
+### What Doesn't Work Yet
+- ❌ Network scanning (shows empty device list)
+- ❌ Device discovery and storage
+- ❌ CLI commands (all return "not yet implemented")
+- ❌ Port scanning
+- ❌ Settings persistence (changes don't save)
+
+### Critical Next Steps to Make It Functional
+
+**Priority 1: Make Settings Persist**
+1. Implement `JsonSettingsService.cs` to save/load settings from `%APPDATA%\IPScan\settings.json`
+2. Wire up settings service to GUI SettingsWindow
+
+**Priority 2: Implement Basic Network Scanning**
+1. Implement `SubnetCalculator.cs` to determine scan range
+2. Implement `NetworkInterfaceService.cs` to detect active interfaces
+3. Implement `NetworkScanner.cs` for ping sweep and basic device detection
+4. Implement `JsonDeviceRepository.cs` to persist discovered devices
+
+**Priority 3: Connect GUI to Backend**
+1. Wire up MainWindow to DeviceManager
+2. Display discovered devices in tree view
+3. Update device list in real-time during scans
+4. Implement scan button functionality
+
 ## Implementation Status
 
-### Completed Features
+### Completed Features ✓
 
-#### Core Functionality ✓
-- **Network Scanning**: Async ping sweep of subnet with concurrent operations (configurable, default 100)
-- **Device Discovery**: Automatic detection and storage of devices with IP, hostname, MAC, response time
-- **Device Persistence**: JSON-based storage in `%APPDATA%\IPScan\devices.json`
-- **Settings Management**: JSON-based configuration in `%APPDATA%\IPScan\settings.json`
-- **Real-time Updates**: Live device list population during scans with progress tracking
-
-#### GUI Features ✓
+#### GUI Application
 - **Splash Screen**: Auto-dismiss with configurable timeout, theme-aware, displays version/author info
-- **Main Window**: Responsive WPF interface with device tree, details panel, and status bar
-- **Theme System**: Automatic dark/light mode detection following Windows theme
-- **Dynamic Theming**: Real-time response to Windows theme changes with accent color integration
-- **Device Tree View**: Hierarchical display grouped by online/offline status
-- **Search/Filter**: Real-time search across device name, IP, hostname, and MAC address
-- **Device Details**: Show/hide offline devices toggle, device selection with detail panel
-- **Progress Display**: Real-time scan progress with percentage and device count
+- **Main Window**: WPF interface with device tree view, details panel, and status bar
+- **Settings Dialog**: User-configurable application settings (access via menu/toolbar)
+- **Edit Device Dialog**: Modify device name and notes
+- **Color Picker Control**: Custom control for theme color selection
+
+#### Theme System ✓
+- **CRT Green Theme**: Iconic 1970s-80s terminal aesthetic with P1 phosphor green glow
+- **Multi-Theme Support**: CRT Green (default), Windows System, Light, Dark modes
+- **Accent Colors**: CRT Green, Windows System, or custom user-defined colors
+- **Dynamic Theming**: Real-time response to Windows theme changes
+- **Theme Persistence**: Settings saved and restored across sessions
 
 #### Window Management ✓
 - **Smart Sizing**: Initial window size adapts to screen (80% of working area, max 1400x900)
@@ -37,19 +86,91 @@ IPScan is a Windows network device discovery tool that locates HTTP-enabled devi
   - `DefaultCentered`: Center with smart default size
   - `SpecificMonitor`: Start on preferred monitor
 
-### In Progress
+#### Data Models & Architecture ✓
+- **Device Model**: Core device representation with GUID, IP, hostname, MAC, online status, timestamps
+- **AppSettings Model**: Comprehensive settings with theme, window, and scan configuration
+- **Service Interfaces**: Defined interfaces for network scanning, device management, settings, repository
+- **JSON Persistence**: Structure for device and settings storage in `%APPDATA%\IPScan\`
 
-#### GUI Dialogs
-- Settings dialog (access via menu/toolbar)
-- Edit device dialog (modify name, notes)
-- Export/Import devices (JSON file operations)
+#### CLI Structure ✓
+- **Command Framework**: Argument parsing and command routing
+- **Help System**: `--help` documentation for all commands
+- **Version Display**: `--version` shows application version from MinVer
+- **GUI Launcher**: Launch GUI from CLI when no arguments provided
 
-#### Planned Features
-- Port scanning and service detection
-- Device categorization by hardware type
-- Connection type detection (wired/wireless)
-- Credentials management
-- CLI interface
+### In Progress 🚧
+
+#### Core Functionality (Partially Implemented)
+- **Network Scanning**: Service interfaces defined, implementation pending
+  - AsyncNetworkScanner interface created
+  - Concurrent ping operations architecture planned (default 100)
+  - Subnet calculation service interface ready
+- **Device Discovery**: Models ready, detection logic pending
+  - Device storage models complete
+  - Detection and categorization logic not implemented
+- **Device Persistence**: File structure defined, JSON serialization pending
+  - Storage location: `%APPDATA%\IPScan\devices.json`
+  - Repository interface defined, implementation incomplete
+- **Settings Management**: Models complete, file I/O pending
+  - Settings location: `%APPDATA%\IPScan\settings.json`
+  - Settings service interface defined, implementation incomplete
+
+#### CLI Commands (Stubs Only)
+- **scan**: Command structure exists, network scanning not implemented
+- **list**: Command parser ready, device listing not implemented
+- **show**: Argument parsing complete, device details not implemented
+- **open**: URL construction pending, browser launch not implemented
+- **settings get/set**: Commands defined, settings persistence not implemented
+
+### Not Yet Implemented ❌
+
+#### Port Scanning & Service Detection
+- Scan configurable list of known ports on discovered devices
+- Identify service type based on port and response headers
+- Generate clickable links for web-accessible ports (HTTP/HTTPS)
+- Service category detection (Media, Home Automation, Storage, etc.)
+- Port scanning results storage per device
+
+#### Device Categorization
+- Hardware category detection (Router, Switch, Server, Workstation, IoT, etc.)
+- Service category detection from open ports and responses
+- Connection type detection (Wired, Wireless, Unknown)
+- MAC OUI database lookup for manufacturer identification
+- User override capability for auto-detected categories
+- Category-based filtering in GUI
+
+#### Advanced GUI Features
+- Device tree view with hierarchical grouping by online/offline status
+- Real-time search/filter across device name, IP, hostname, MAC
+- Real-time scan progress with percentage and device count
+- Show/hide offline devices toggle
+- Export/Import device lists (JSON file operations)
+- Clickable links to device web interfaces
+- Category visibility filters
+
+#### Credentials Management
+- Windows Credential Manager integration
+- Store/recall login credentials per device
+- Secure credential storage (no plaintext passwords)
+
+#### Network Features
+- Automatic subnet detection from active network interface
+- Custom subnet specification (CIDR notation)
+- MAC address discovery via ARP
+- Hostname resolution (DNS/mDNS)
+- Response time tracking
+- Network interface selection
+
+#### Startup & Scanning Behavior
+- Automatic scan on application startup
+- Display previously known devices from saved data
+- Highlight newly discovered devices
+- Mark devices offline if not responding
+- Auto-remove devices after N consecutive missed scans (optional)
+
+#### Documentation
+- GUI help file accessible via File > Help menu
+- Complete CLI documentation with examples
 
 ## Functional Requirements
 
@@ -197,14 +318,19 @@ Uses [MinVer](https://github.com/adamralph/minver) for automatic semantic versio
 
 ### Libraries
 
-| Purpose | Library |
-|---------|---------|
-| Network scanning | SharpPcap, System.Net |
-| CLI parsing | System.CommandLine |
-| Credential storage | Microsoft.Extensions.SecretManager |
-| Data persistence | JSON files (System.Text.Json) |
-| Logging | Microsoft.Extensions.Logging |
-| Windows theming | WinRT APIs (via net10.0-windows10.0.19041.0) |
+| Purpose | Library | Status |
+|---------|---------|--------|
+| Network scanning | SharpPcap, System.Net.NetworkInformation | SharpPcap referenced, implementation pending |
+| CLI parsing | Custom implementation | Basic structure complete |
+| Credential storage | Windows Credential Manager | Not yet implemented |
+| Data persistence | System.Text.Json | Models defined, serialization pending |
+| Logging | Microsoft.Extensions.Logging.Abstractions | Referenced, not utilized yet |
+| Windows theming | WinRT APIs (via net10.0-windows10.0.19041.0) | Implemented in GUI |
+
+**Current Dependencies:**
+- **IPScan.Core**: SharpPcap 6.3.1, Microsoft.Extensions.Logging.Abstractions 10.0.2
+- **IPScan.GUI**: Windows SDK 10.0.19041.0 (for WinRT theming APIs)
+- **All Projects**: MinVer 6.0.0 (for automatic Git-based versioning)
 
 ### Windows Theme Integration
 
@@ -225,21 +351,75 @@ IPScan/
 │   ├── tasks.json
 │   └── settings.json
 ├── src/
-│   ├── IPScan.Core/            # Shared business logic
-│   │   ├── Models/             # Data models
-│   │   ├── Services/           # Scanning, device detection
-│   │   └── Storage/            # JSON persistence, credentials
-│   ├── IPScan.CLI/             # Command line interface
-│   └── IPScan.GUI/             # WPF application
+│   ├── IPScan.Core/            # Shared business logic (.NET 10.0)
+│   │   ├── Models/
+│   │   │   ├── Device.cs                 ✓ Core device model
+│   │   │   ├── DeviceList.cs             ✓ Device collection
+│   │   │   ├── AppSettings.cs            ✓ Application settings model
+│   │   │   ├── NetworkInterfaceInfo.cs   ✓ Network interface data
+│   │   │   └── ScanResult.cs             ✓ Scan result model
+│   │   └── Services/
+│   │       ├── INetworkScanner.cs        ✓ Scanner interface
+│   │       ├── NetworkScanner.cs         🚧 Implementation pending
+│   │       ├── IDeviceRepository.cs      ✓ Repository interface
+│   │       ├── JsonDeviceRepository.cs   🚧 Implementation pending
+│   │       ├── IDeviceManager.cs         ✓ Manager interface
+│   │       ├── DeviceManager.cs          🚧 Implementation pending
+│   │       ├── ISettingsService.cs       ✓ Settings interface
+│   │       ├── JsonSettingsService.cs    🚧 Implementation pending
+│   │       ├── INetworkInterfaceService.cs ✓ Interface service interface
+│   │       ├── NetworkInterfaceService.cs  🚧 Implementation pending
+│   │       ├── ISubnetCalculator.cs      ✓ Subnet calc interface
+│   │       └── SubnetCalculator.cs       🚧 Implementation pending
+│   ├── IPScan.CLI/             # Command line interface (.NET 10.0)
+│   │   └── Program.cs                    🚧 Structure complete, commands stub
+│   └── IPScan.GUI/             # WPF application (.NET 10.0-windows10.0.19041.0)
+│       ├── App.xaml / .cs                ✓ Application entry point
+│       ├── SplashScreen.xaml / .cs       ✓ Splash screen with theming
+│       ├── MainWindow.xaml / .cs         ✓ Main application window
+│       ├── SettingsWindow.xaml / .cs     ✓ Settings dialog
+│       ├── EditDeviceWindow.xaml / .cs   ✓ Device editor dialog
+│       ├── Controls/
+│       │   └── ColorPickerControl.xaml / .cs ✓ Custom color picker
+│       └── AssemblyInfo.cs               ✓ Assembly metadata
 ├── tests/
-│   ├── IPScan.Core.Tests/
-│   └── IPScan.CLI.Tests/
-├── docs/                       # Documentation
-├── Directory.Build.props       # Shared build properties & versioning
-├── IPScan.sln
-├── README.md
-├── REQUIREMENTS.md
-└── LICENSE
+│   ├── IPScan.Core.Tests/      ❌ Not yet created
+│   └── IPScan.CLI.Tests/       ❌ Not yet created
+├── docs/                       ❌ Documentation pending
+├── Directory.Build.props       ✓ Shared build properties & MinVer config
+├── IPScan.sln                  ❌ Solution file not present
+├── README.md                   ✓ Project overview
+├── requirements.md             ✓ This file (updated)
+└── LICENSE                     ❌ License file pending
+
+Legend:
+✓ = Implemented and complete
+🚧 = Partial implementation or stub
+❌ = Not yet implemented
+```
+
+**Missing Project Infrastructure:**
+
+The following standard project files are not yet created:
+- ❌ `IPScan.sln` - Solution file for building all projects together
+- ❌ `tests/IPScan.Core.Tests/` - Unit tests for core services
+- ❌ `tests/IPScan.CLI.Tests/` - CLI integration tests
+- ❌ `LICENSE` - License file (MIT license specified in requirements)
+- ❌ `docs/` - User and developer documentation
+
+**Workaround**: Projects can be built individually:
+```bash
+dotnet build src/IPScan.Core/IPScan.Core.csproj
+dotnet build src/IPScan.GUI/IPScan.GUI.csproj
+dotnet build src/IPScan.CLI/IPScan.CLI.csproj
+```
+
+**To create solution file:**
+```bash
+dotnet new sln -n IPScan
+dotnet sln add src/IPScan.Core/IPScan.Core.csproj
+dotnet sln add src/IPScan.GUI/IPScan.GUI.csproj
+dotnet sln add src/IPScan.CLI/IPScan.CLI.csproj
 ```
 
 ## Non-Functional Requirements
@@ -266,8 +446,10 @@ IPScan/
 
 ### Device Data (JSON)
 
-Location: `%APPDATA%\IPScan\devices.json`
+**Status**: Model defined, JSON persistence not yet implemented
+**Location**: `%APPDATA%\IPScan\devices.json` (planned)
 
+**Planned Structure (Full Feature Set):**
 ```json
 {
   "devices": [
@@ -277,19 +459,20 @@ Location: `%APPDATA%\IPScan\devices.json`
       "hostname": "router.local",
       "ipAddress": "192.168.1.1",
       "macAddress": "AA:BB:CC:DD:EE:FF",
-      "manufacturer": "Cisco",
-      "hardwareCategory": "NetworkInfrastructure",
-      "serviceCategories": ["NetworkServices"],
-      "connectionType": "Wired",
+      "manufacturer": "Cisco",                    // ❌ Not in current model
+      "hardwareCategory": "NetworkInfrastructure", // ❌ Not in current model
+      "serviceCategories": ["NetworkServices"],    // ❌ Not in current model
+      "connectionType": "Wired",                  // ❌ Not in current model
       "isOnline": true,
-      "ports": [
+      "ports": [                                  // ❌ Not in current model
         { "port": 80, "protocol": "tcp", "service": "HTTP", "serviceCategory": "Web", "url": "http://192.168.1.1" },
         { "port": 443, "protocol": "tcp", "service": "HTTPS", "serviceCategory": "Web", "url": "https://192.168.1.1" },
         { "port": 22, "protocol": "tcp", "service": "SSH", "serviceCategory": "RemoteAccess" }
       ],
       "firstDiscovered": "2026-01-20T08:00:00Z",
       "lastSeen": "2026-01-25T10:30:00Z",
-      "userOverrides": {
+      "consecutiveMissedScans": 0,               // ✓ In current model
+      "userOverrides": {                         // ❌ Not in current model
         "name": null,
         "hardwareCategory": null,
         "connectionType": null
@@ -300,23 +483,47 @@ Location: `%APPDATA%\IPScan\devices.json`
 }
 ```
 
+**Current Model (Device.cs) Supports:**
+```json
+{
+  "id": "guid",           // ✓
+  "name": "Router",       // ✓
+  "hostname": "router.local",  // ✓
+  "ipAddress": "192.168.1.1",  // ✓
+  "macAddress": "AA:BB:CC:DD:EE:FF",  // ✓ (nullable)
+  "isOnline": true,       // ✓
+  "firstDiscovered": "2026-01-20T08:00:00Z",  // ✓
+  "lastSeen": "2026-01-25T10:30:00Z",         // ✓
+  "consecutiveMissedScans": 0,  // ✓
+  "notes": ""             // ✓
+}
+```
+
+**Note**: The current Device model is a minimal viable structure. Port scanning, categorization, and manufacturer detection will require extending this model in future phases.
+
 #### Device Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | GUID | Unique device identifier |
-| `name` | string | Display name (auto-detected or user-assigned) |
-| `hostname` | string | DNS/mDNS hostname if discovered |
-| `ipAddress` | string | IPv4 address |
-| `macAddress` | string | MAC address (for OUI lookup) |
-| `manufacturer` | string | Manufacturer from MAC OUI database |
-| `hardwareCategory` | enum | Hardware type category |
-| `serviceCategories` | array | Detected service categories |
-| `connectionType` | enum | Wired, Wireless, or Unknown |
-| `isOnline` | bool | Current online status |
-| `ports` | array | Open ports with service info |
-| `userOverrides` | object | User-specified overrides for auto-detected values |
-| `notes` | string | User notes |
+| Property | Type | Description | Implementation Status |
+|----------|------|-------------|----------------------|
+| `id` | GUID | Unique device identifier | ✓ Implemented |
+| `name` | string | Display name (auto-detected or user-assigned) | ✓ Implemented |
+| `hostname` | string? | DNS/mDNS hostname if discovered | ✓ Implemented |
+| `ipAddress` | string | IPv4 address | ✓ Implemented |
+| `macAddress` | string? | MAC address (for OUI lookup) | ✓ Model only, discovery pending |
+| `manufacturer` | string | Manufacturer from MAC OUI database | ❌ Not implemented |
+| `hardwareCategory` | enum | Hardware type category | ❌ Not in model |
+| `serviceCategories` | array | Detected service categories | ❌ Not in model |
+| `connectionType` | enum | Wired, Wireless, or Unknown | ❌ Not in model |
+| `isOnline` | bool | Current online status | ✓ Implemented |
+| `ports` | array | Open ports with service info | ❌ Not in model |
+| `firstDiscovered` | DateTime | When device was first seen | ✓ Implemented |
+| `lastSeen` | DateTime | Last time device was online | ✓ Implemented |
+| `consecutiveMissedScans` | int | Count of consecutive scans where device was not found | ✓ Implemented |
+| `userOverrides` | object | User-specified overrides for auto-detected values | ❌ Not in model |
+| `notes` | string | User notes | ✓ Implemented |
+| `displayName` | property | Computed display name (Name → Hostname → IP) | ✓ Implemented |
+
+**Current Device Model (IPScan.Core.Models.Device)** includes only basic properties. Advanced features like port scanning results, device categorization, manufacturer lookup, and connection type detection require additional implementation.
 
 #### Connection Type Detection
 
@@ -330,23 +537,25 @@ Location: `%APPDATA%\IPScan\devices.json`
 
 ### Application Settings (JSON)
 
-Location: `%APPDATA%\IPScan\settings.json`
+**Status**: Model defined, JSON persistence not yet implemented
+**Location**: `%APPDATA%\IPScan\settings.json` (planned)
 
+**Current Implementation (AppSettings.cs):**
 ```json
 {
-  "scanOnStartup": true,
-  "subnet": "auto",
-  "customSubnet": "",
-  "preferredInterfaceId": "",
-  "scanTimeoutMs": 1000,
-  "maxConcurrentScans": 100,
-  "autoRemoveMissingDevices": false,
-  "missedScansBeforeRemoval": 5,
-  "showOfflineDevices": true,
-  "splashTimeoutSeconds": 5,
-  "windowStartup": "RememberLast",
-  "preferredMonitor": "",
-  "lastWindowSettings": {
+  "scanOnStartup": true,                    // ✓ In model
+  "subnet": "auto",                         // ✓ In model
+  "customSubnet": "",                       // ✓ In model
+  "preferredInterfaceId": "",               // ✓ In model
+  "scanTimeoutMs": 1000,                    // ✓ In model
+  "maxConcurrentScans": 100,                // ✓ In model
+  "autoRemoveMissingDevices": false,        // ✓ In model
+  "missedScansBeforeRemoval": 5,            // ✓ In model
+  "showOfflineDevices": true,               // ✓ In model
+  "splashTimeoutSeconds": 5,                // ✓ In model
+  "windowStartup": "RememberLast",          // ✓ In model (enum: WindowStartupMode)
+  "preferredMonitor": "",                   // ✓ In model
+  "lastWindowSettings": {                   // ✓ In model (WindowSettings class)
     "left": 100,
     "top": 100,
     "width": 1200,
@@ -354,39 +563,14 @@ Location: `%APPDATA%\IPScan\settings.json`
     "isMaximized": false,
     "monitorDeviceName": "\\\\.\\DISPLAY1"
   },
-  "categoryVisibility": {
-    "hardware": {
-      "NetworkInfrastructure": true,
-      "Servers": true,
-      "Workstations": true,
-      "IoTDevices": true,
-      "MobileDevices": true,
-      "Printers": true,
-      "MediaDevices": true,
-      "AccessPoints": true,
-      "Unknown": true
-    },
-    "services": {
-      "MediaEntertainment": true,
-      "HomeAutomation": true,
-      "StorageBackup": true,
-      "SecuritySurveillance": true,
-      "NetworkServices": true,
-      "Virtualization": true,
-      "Database": true,
-      "WebServices": true,
-      "Communication": true,
-      "Development": true,
-      "Monitoring": true,
-      "PhotoDocuments": true
-    },
-    "connectionType": {
-      "Wired": true,
-      "Wireless": true,
-      "Unknown": true
-    }
-  },
-  "showOfflineDevices": true
+  "themeMode": "CrtGreen",                  // ✓ In model (enum: ThemeMode)
+  "accentColorMode": "System",              // ✓ In model (enum: AccentColorMode)
+  "customAccentColor": "#00FF00",           // ✓ In model
+  "categoryVisibility": {                   // ❌ Not in model - pending categorization feature
+    "hardware": { /* ... */ },
+    "services": { /* ... */ },
+    "connectionType": { /* ... */ }
+  }
 }
 ```
 
@@ -715,12 +899,97 @@ The application scans these ports by default (can be customized in settings):
 - **Web apps:** 3000, 8080, 8443
 - **Monitoring:** 19999 (Netdata)
 
-## Future Considerations
+## Development Roadmap
+
+### Phase 1: Core Functionality (Current Priority)
+**Goal**: Make the application functional for basic network device discovery
+
+1. **Network Scanning Implementation**
+   - Implement `NetworkScanner.cs` using SharpPcap and System.Net.NetworkInformation
+   - Subnet detection and IP address enumeration
+   - Async ping sweep with configurable concurrency
+   - Hostname resolution (DNS/mDNS)
+   - MAC address discovery via ARP
+
+2. **Data Persistence**
+   - Implement `JsonDeviceRepository.cs` for device storage
+   - Implement `JsonSettingsService.cs` for settings persistence
+   - Create `%APPDATA%\IPScan` directory structure
+   - JSON serialization/deserialization with System.Text.Json
+
+3. **Device Management**
+   - Implement `DeviceManager.cs` to coordinate scanning and storage
+   - Device deduplication logic
+   - Online/offline status tracking
+   - Consecutive missed scans tracking
+
+4. **GUI Integration**
+   - Connect MainWindow to DeviceManager
+   - Real-time device list updates during scanning
+   - Implement device tree view with online/offline grouping
+   - Scan progress display
+   - Search/filter functionality
+
+5. **CLI Integration**
+   - Implement scan command with actual network scanning
+   - Implement list command with device repository access
+   - Implement show command with device details
+   - Implement settings get/set with settings service
+
+### Phase 2: Enhanced Features
+**Goal**: Add port scanning and device identification
+
+1. **Port Scanning**
+   - TCP port scanner for common ports
+   - Service detection from port responses
+   - HTTP/HTTPS link generation
+   - Port scan results storage in Device model
+
+2. **Device Categorization**
+   - Extend Device model with category fields
+   - MAC OUI database integration for manufacturer lookup
+   - Hardware category detection logic
+   - Service category detection from open ports
+   - User override capability
+
+3. **GUI Enhancements**
+   - Category-based filtering
+   - Clickable links to device web interfaces
+   - Export/import device lists
+   - Enhanced device details panel
+
+### Phase 3: Advanced Features
+**Goal**: Professional-grade network management tool
+
+1. **Connection Type Detection**
+   - Wired/wireless detection via MAC OUI
+   - SNMP integration for switch port mapping
+   - Router API integration for wireless client lists
+
+2. **Credentials Management**
+   - Windows Credential Manager integration
+   - Per-device credential storage
+   - Credential-based quick launch
+
+3. **Testing & Quality**
+   - Unit tests for Core services
+   - Integration tests for CLI
+   - End-to-end GUI testing
+
+4. **Documentation**
+   - User guide
+   - GUI help system (File > Help)
+   - Developer documentation
+
+## Future Considerations (Post-1.0)
 
 - Cross-platform support (Linux, macOS) via Avalonia UI
 - Network topology visualization
-- Scheduled scanning
-- Export/import device lists
-- SNMP-based switch port mapping for accurate wired/wireless detection
-- Router API integration for wireless client detection
+- Scheduled scanning with notifications
+- Advanced port scanning (UDP, custom port lists)
 - LLDP/CDP neighbor discovery
+- SNMP MIB browser
+- Network performance monitoring
+- Device grouping and tagging
+- Custom device icons
+- Dark web interface theme

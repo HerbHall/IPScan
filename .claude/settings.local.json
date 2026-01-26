@@ -22,7 +22,12 @@
       "Skill(run-prompt)",
       "Skill(run-prompt:*)",
       "Bash(git commit:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Skill(requirements_generator)",
+      "Skill(requirements_generator:*)",
+      "Bash(echo:*)",
+      "Bash(unzip:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
