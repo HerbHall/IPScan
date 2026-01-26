@@ -11,15 +11,18 @@ public partial class App : Application
 {
     private void Application_Startup(object sender, StartupEventArgs e)
     {
+        // Create main window first and set it as the application's main window
+        var mainWindow = new MainWindow();
+        MainWindow = mainWindow;
+
         // Load settings to get splash timeout
         var splashTimeout = LoadSplashTimeout();
 
-        // Show splash screen
+        // Show splash screen (dialog blocks until closed)
         var splash = new SplashScreen(splashTimeout);
         splash.ShowDialog();
 
-        // Show main window
-        var mainWindow = new MainWindow();
+        // Show main window after splash closes
         mainWindow.Show();
     }
 
