@@ -2,11 +2,15 @@
 
 ## Overview
 
-IPScan is a Windows network device discovery tool that locates HTTP-enabled devices on the local subnet and presents them in an accessible interface for configuration.
+IPScan is a cross-platform network device discovery, monitoring, and remote access platform. It uses a client-server architecture with a web-based dashboard (server) and lightweight agents (clients) installed on monitored devices, plus agentless discovery for devices that can't run agents.
 
-**Current Project Status**: The application has a complete GUI framework with theming support, but core network scanning functionality is not yet implemented. The project is in early development with foundational architecture in place.
+**Vision**: A single unified tool to see everything on your network, monitor it, and provide quick remote access -- bridging the gap between enterprise monitoring tools and home/prosumer needs.
 
-**📋 Key Implementation Decisions**: See [DECISIONS.md](DECISIONS.md) for comprehensive design decisions made from requirements questionnaire (network interfaces, storage, admin privileges, port scanning, notifications, and more). All blocker questions answered - development can proceed with Phase 1.
+**Current Project Status**: The project has a working WPF prototype with GUI framework, theming, and core scanning services implemented. The architecture is pivoting from a single-machine WPF scanner to a client-server web-based platform. See [Feasibility Assessment](artifacts/research/2026-02-01-client-server-architecture-pivot-feasibility.md) for the full analysis.
+
+**Key Documents**:
+- [DECISIONS.md](DECISIONS.md) - Implementation decisions from requirements questionnaire
+- [Feasibility Assessment](artifacts/research/2026-02-01-client-server-architecture-pivot-feasibility.md) - Build-vs-buy analysis and competitive landscape
 
 ## Quick Start for Developers
 
@@ -1147,15 +1151,321 @@ The application scans these ports by default (can be customized in settings):
    - GUI help system (File > Help)
    - Developer documentation
 
-## Future Considerations (Post-1.0)
+---
 
-- Cross-platform support (Linux, macOS) via Avalonia UI
-- Network topology visualization
-- Scheduled scanning with notifications
-- Advanced port scanning (UDP, custom port lists)
-- LLDP/CDP neighbor discovery
-- SNMP MIB browser
-- Network performance monitoring
-- Device grouping and tagging
-- Custom device icons
-- Dark web interface theme
+## Architecture Pivot: Client-Server Platform
+
+> **Note**: The sections above document the original WPF prototype. The sections below define the new client-server architecture that supersedes the WPF-only approach. The IPScan.Core models and scanning services from the prototype will be reused in the server.
+
+### Architecture Overview
+
+```
+                    +------------------+
+                    |   Web Dashboard  |
+                    |  (Blazor Server  |
+                    |   + MudBlazor)   |
+                    +--------+---------+
+                             |
+                    +--------+---------+
+                    |   IPScan Server  |
+                    |  (ASP.NET Core)  |
+                    |                  |
+                    | - REST API       |
+                    | - gRPC Server    |
+                    | - SignalR Hub    |
+                    | - Background     |
+                    |   Services       |
+                    | - Credential     |
+                    |   Vault          |
+                    +--+----+----+-----+
+                       |    |    |
+          +------------+    |    +------------+
+          |                 |                 |
+   +------+------+  +------+------+  +-------+-------+
+   | Windows     |  | Linux       |  | Agentless     |
+   | Agent       |  | Agent       |  | Discovery     |
+   | (.NET 10)   |  | (.NET 10)   |  | (SNMP, mDNS,  |
+   |             |  |             |  |  MQTT, UPnP,  |
+   +-------------+  +-------------+  |  ARP, Ping)   |
+                                      +---------------+
+```
+
+### Server Application
+
+The server is the central hub for all data collection, storage, and presentation.
+
+**Technology Stack:**
+| Component | Technology | Package |
+|-----------|-----------|---------|
+| Web framework | ASP.NET Core 10 | Built-in |
+| Dashboard UI | Blazor Server | Built-in |
+| UI components | MudBlazor | `MudBlazor` NuGet |
+| Real-time updates | SignalR | Built-in |
+| Agent protocol | gRPC | `Grpc.AspNetCore` |
+| REST API | Minimal APIs | Built-in |
+| Database (Phase 1) | SQLite | `Microsoft.EntityFrameworkCore.Sqlite` |
+| Database (Phase 2+) | PostgreSQL + TimescaleDB | `Npgsql.EntityFrameworkCore.PostgreSQL` |
+| Credential encryption | DataProtection | `Microsoft.AspNetCore.DataProtection` |
+| SNMP | SharpSnmpLib | `Lextm.SharpSnmpLib` |
+| mDNS | Zeroconf | `Zeroconf` NuGet |
+| UPnP/SSDP | RSSDP | `RSSDP` NuGet |
+| MQTT | MQTTnet | `MQTTnet` NuGet (client + embedded broker) |
+| HTTP proxy | YARP | `Yarp.ReverseProxy` |
+| SSH client | SSH.NET | `Renci.SshNet` |
+| Packet capture | SharpPcap | Already in use |
+| Logging | Serilog | `Serilog.AspNetCore` |
+
+**Server Responsibilities:**
+1. Web-based dashboard for device management, monitoring, and remote access
+2. gRPC endpoint for agent check-in, metrics reporting, and command dispatch
+3. REST API for dashboard operations and external integrations
+4. SignalR hub for real-time UI updates (device status, scan progress, alerts)
+5. Background services for periodic scanning, alert evaluation, and health checks
+6. Credential vault with AES-256 encryption via DataProtection API
+7. Remote access gateway (HTTP proxy, SSH relay, RDP/VNC via Guacamole)
+8. Agentless discovery (ICMP ping, ARP, SNMP, mDNS, UPnP, MQTT)
+
+### Client Agents
+
+Lightweight agents installed on monitored devices that report status to the server.
+
+**Agent Responsibilities:**
+1. Device identity reporting (hostname, IP, MAC, OS, agent version)
+2. Heartbeat/check-in (configurable interval, default 60 seconds)
+3. System metrics (CPU, memory, disk, network interface stats)
+4. Running services/processes (optional)
+5. Receive and execute commands from server
+6. Auto-update capability (server distributes new agent binaries)
+
+**Agent Platforms:**
+
+| Platform | Technology | Binary Size | Priority |
+|----------|-----------|-------------|----------|
+| Windows (x64, ARM64) | .NET 10 Worker Service | 15-30 MB (trimmed) | Phase 1 |
+| Linux (x64, ARM64) | .NET 10 Worker Service | 15-30 MB (trimmed) | Phase 2 |
+| Linux (ARM, MIPS) | Go | 5-15 MB | Phase 4 |
+| Android | Kotlin (Foreground Service) | N/A (APK) | Phase 4 (if needed) |
+
+**Agent Communication Protocol:**
+- Primary: gRPC over TLS (HTTP/2, bidirectional streaming)
+- Fallback: REST/JSON over HTTPS (for restrictive firewalls)
+- Authentication: API key (Phase 1), mTLS certificates (Phase 2+)
+- Agent initiates all connections (push model) -- works through NAT/firewalls
+
+**Agent Enrollment Process:**
+1. Admin generates enrollment token on server (short-lived, single-use)
+2. Agent installed on target device with enrollment token
+3. Agent connects to server, presents token
+4. Server validates token, registers agent, returns API key
+5. All subsequent communication uses API key (or mTLS certificate)
+
+### Agentless Discovery
+
+For devices that cannot run agents (IoT, network infrastructure, printers, cameras).
+
+**Discovery Protocols (Priority Order):**
+
+| Protocol | Devices Covered | NuGet Package | Effort |
+|----------|----------------|---------------|--------|
+| ICMP Ping | Everything (online/offline) | System.Net.Ping (built-in) | Already done |
+| ARP + OUI | MAC/vendor identification | SharpPcap (already in use) | 1-2 days |
+| SNMP v2c/v3 | Switches, routers, NAS, printers, UPS | `Lextm.SharpSnmpLib` | 1-2 weeks |
+| mDNS/Bonjour | Apple, Chromecast, printers, Linux | `Zeroconf` | 2-3 days |
+| UPnP/SSDP | Routers, media devices, smart TVs | `RSSDP` | 2-3 days |
+| MQTT | Tasmota, Shelly, Zigbee2MQTT, ESPHome | `MQTTnet` | 1 week |
+| Home Assistant API | Everything HA manages | HttpClient (built-in) | 2-3 days |
+| UniFi API | UniFi network devices and clients | HttpClient (built-in) | 2-3 days |
+
+### Remote Access Gateway
+
+Browser-based remote access to any device on the network without VPN.
+
+**Access Methods:**
+
+| Method | Technology | Use Case |
+|--------|-----------|----------|
+| HTTP/HTTPS proxy | YARP reverse proxy | Device web interfaces (routers, NAS, cameras, Home Assistant) |
+| SSH terminal | xterm.js + SSH.NET + WebSocket | Linux server management |
+| RDP | Apache Guacamole (Docker) | Windows remote desktop |
+| VNC | noVNC + WebSocket | Cross-platform remote desktop |
+
+**Credential Management:**
+- Encrypted credential vault (ASP.NET DataProtection, AES-256)
+- Per-device credential storage (SSH, RDP, SNMP, HTTP, API keys)
+- Write-only UI (can set credentials, cannot view passwords)
+- Auto-injection when launching remote sessions
+- Audit logging for all credential access
+
+### Database Schema (Key Tables)
+
+```sql
+-- Device inventory (extends existing Device model)
+Devices: Id, Name, Hostname, IpAddress, MacAddress, Manufacturer,
+         DeviceType, IsOnline, IsManaged, FirstDiscovered, LastSeen,
+         ConsecutiveMissedScans, Notes, ParentDeviceId, GroupId
+
+-- Agent registration
+Agents: Id, DeviceId, AgentVersion, Platform, Architecture,
+        LastCheckIn, Status, ApiKeyHash, ConfigVersion
+
+-- Encrypted credentials
+Credentials: Id, DeviceId, Protocol, Label, EncryptedPayload,
+             CreatedAt, LastUsedAt
+
+-- Time-series metrics (TimescaleDB hypertable in Phase 2+)
+Metrics: Time, DeviceId, MetricName, Value, Tags
+
+-- Alerting
+AlertRules: Id, Name, Condition, Severity, Enabled, DeviceFilter
+Alerts: Id, DeviceId, RuleId, Severity, Message, CreatedAt,
+        AcknowledgedAt, ResolvedAt
+
+-- Organization
+DeviceGroups: Id, Name, Description, ParentGroupId, Color
+ScanHistory: Id, Subnet, StartTime, EndTime, DevicesFound, NewDevices
+```
+
+### New Development Roadmap
+
+#### Phase 1: Server Foundation (8-12 weeks)
+
+**1.1 Server Setup**
+- ASP.NET Core 10 project with gRPC + REST + SignalR
+- EF Core with SQLite (migrate from JSON file repos)
+- Background service for periodic scanning
+- Authentication (ASP.NET Core Identity, cookie-based)
+
+**1.2 Web Dashboard**
+- Blazor Server project with MudBlazor
+- Device list view (DataGrid with sorting, filtering, search)
+- Device detail panel (properties, status, notes)
+- Network scan trigger with real-time progress (SignalR)
+- Settings page
+- Responsive layout
+
+**1.3 Migrate Core Services**
+- Port IPScan.Core models and services to server
+- Replace JsonDeviceRepository with EF Core
+- Replace JsonSettingsService with database-backed service
+- Retain NetworkScanner, SubnetCalculator, NetworkInterfaceService
+
+**1.4 Windows Agent (v1)**
+- .NET 10 Worker Service (runs as Windows service)
+- gRPC client for server communication
+- Device identity reporting
+- Heartbeat/check-in (60-second interval)
+- Basic system metrics (CPU, memory, disk, network)
+- Agent enrollment via API key
+
+#### Phase 2: Core Monitoring (8-12 weeks)
+
+**2.1 Agentless Discovery Expansion**
+- SNMP v2c polling for network devices
+- mDNS/Bonjour discovery
+- UPnP/SSDP discovery
+- ARP monitoring with OUI vendor lookup
+- Port scanning (TCP connect, common ports)
+
+**2.2 Linux Agent**
+- .NET 10 cross-compiled for linux-x64 and linux-arm64
+- systemd service unit file
+- Linux-specific metric collectors (/proc, /sys)
+
+**2.3 Alert System**
+- Device offline alerts
+- Metric threshold alerts (CPU > 90% for 5 minutes)
+- New device detected alerts
+- Notification channels (email SMTP, webhook)
+- Alert acknowledgment and resolution
+
+**2.4 Dashboard Improvements**
+- Network topology map (D3.js or vis.js)
+- Metric charts (time-series per device)
+- Alert dashboard
+- Device grouping and categorization
+- Credential management UI
+
+#### Phase 3: Remote Access (8-12 weeks)
+
+**3.1 HTTP/HTTPS Proxy**
+- YARP integration for device web interfaces
+- URL rewriting
+- Self-signed certificate handling
+- Credential injection (auto-login)
+
+**3.2 SSH-in-Browser**
+- xterm.js terminal emulator in Blazor
+- WebSocket-to-SSH bridge via SSH.NET
+- Multi-session support
+- Session recording/audit logging
+
+**3.3 RDP/VNC Gateway**
+- Apache Guacamole deployment (Docker)
+- Integration with dashboard UI
+- Credential passing from vault to Guacamole
+- noVNC as lightweight VNC alternative
+
+#### Phase 4: Extended Platform & IoT (8-12 weeks)
+
+**4.1 MQTT Integration**
+- MQTTnet embedded broker in server
+- Topic subscription and message parsing
+- Tasmota/ESPHome/Shelly auto-discovery
+- Device state tracking from MQTT
+
+**4.2 Go Lightweight Agent**
+- Go agent for linux/arm, linux/mips (Raspberry Pi, routers)
+- Same protobuf protocol as .NET agents
+- 5-10 MB binary
+
+**4.3 API Integrations**
+- Home Assistant REST API
+- UniFi Controller API
+- Synology NAS API
+
+**4.4 Android Agent (if needed)**
+- Kotlin Foreground Service
+- WiFi info, device identity, battery
+- WorkManager fallback
+
+### Commercialization Strategy
+
+**Licensing Model: Open-Core Freemium**
+
+| Tier | Devices | Price | Features |
+|------|---------|-------|----------|
+| Community (Free) | Up to 10 | $0 | Discovery, monitoring, basic alerts, self-hosted |
+| Personal | Up to 50 | $5-10/month | + Remote access, credential vault |
+| Professional | Up to 250 | $15-30/month | + Multi-site, API, advanced alerts |
+| Business | Unlimited | $3-5/device/month | + Multi-user, RBAC, audit logging, SSO |
+
+**All recommended dependencies are MIT or Apache 2.0 licensed -- fully commercially friendly.**
+
+### Competitive Positioning
+
+**IPScan fills a gap no existing tool covers:**
+
+| Capability | Zabbix | MeshCentral | Domotz | **IPScan** |
+|------------|--------|-------------|--------|------------|
+| Device discovery | Yes | No | Yes | **Yes** |
+| Monitoring | Yes | Partial | Yes | **Yes** |
+| Remote access | No | Yes | Partial | **Yes** |
+| Credential vault | No | Yes | No | **Yes** |
+| IoT/MQTT | No | No | Partial | **Yes** |
+| Cross-platform agents | Yes | Yes | Partial | **Yes** |
+| Commercially friendly | No (GPL) | Yes (Apache) | No (Proprietary) | **Yes** |
+| Self-hosted | Yes | Yes | No (Cloud) | **Yes** |
+
+## Legacy: Future Considerations (from original WPF prototype)
+
+The following items from the original roadmap are now incorporated into the new phased roadmap above:
+
+- ~~Cross-platform support (Linux, macOS) via Avalonia UI~~ -> Web dashboard (cross-platform by default)
+- Network topology visualization -> Phase 2 dashboard improvements
+- Scheduled scanning with notifications -> Phase 2 alert system
+- Advanced port scanning (UDP, custom port lists) -> Phase 2 agentless discovery
+- LLDP/CDP neighbor discovery -> Phase 4 advanced discovery
+- SNMP MIB browser -> Phase 2 SNMP polling
+- Network performance monitoring -> Phase 2 metrics/alerting
+- Device grouping and tagging -> Phase 2 dashboard improvements
+- Custom device icons -> Phase 2 dashboard improvements

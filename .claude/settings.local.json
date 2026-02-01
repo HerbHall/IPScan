@@ -27,7 +27,24 @@
       "Skill(requirements_generator:*)",
       "Bash(echo:*)",
       "Bash(unzip:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(go version:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(gh:*)",
+      "Bash(docker --version:*)",
+      "Bash(git config:*)",
+      "Bash(protoc:*)",
+      "Bash(winget list:*)",
+      "Bash(winget install:*)",
+      "Bash(export PATH=\"/c/Program Files/Go/bin:$PATH\")",
+      "Bash(git init:*)",
+      "Bash(go mod init:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)"
     ]
   }
 }
