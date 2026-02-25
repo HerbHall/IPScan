@@ -102,3 +102,6 @@ appsettings.*.json
 secrets.json
 
 .fake
+
+# Claude Code local settings
+.claude/
