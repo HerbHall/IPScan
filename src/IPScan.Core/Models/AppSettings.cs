@@ -55,4 +55,144 @@ public class AppSettings
     /// Splash screen timeout in seconds.
     /// </summary>
     public int SplashTimeoutSeconds { get; set; } = 5;
+
+    /// <summary>
+    /// Window startup behavior.
+    /// </summary>
+    public WindowStartupMode WindowStartup { get; set; } = WindowStartupMode.RememberLast;
+
+    /// <summary>
+    /// Preferred monitor device name (e.g., "\\.\DISPLAY1").
+    /// Empty string means use primary monitor.
+    /// </summary>
+    public string PreferredMonitor { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Saved window state from last session.
+    /// </summary>
+    public WindowSettings? LastWindowSettings { get; set; }
+
+    /// <summary>
+    /// Theme mode for the application.
+    /// </summary>
+    public ThemeMode ThemeMode { get; set; } = ThemeMode.CrtGreen;
+
+    /// <summary>
+    /// Accent color mode for the application.
+    /// </summary>
+    public AccentColorMode AccentColorMode { get; set; } = AccentColorMode.System;
+
+    /// <summary>
+    /// Custom accent color in hex format (e.g., "#00FF00").
+    /// </summary>
+    public string CustomAccentColor { get; set; } = "#00FF00";
+}
+
+/// <summary>
+/// Window startup behavior options.
+/// </summary>
+public enum WindowStartupMode
+{
+    /// <summary>
+    /// Remember last window position, size, and state.
+    /// </summary>
+    RememberLast,
+
+    /// <summary>
+    /// Always start maximized.
+    /// </summary>
+    AlwaysMaximized,
+
+    /// <summary>
+    /// Always start centered with default size.
+    /// </summary>
+    DefaultCentered,
+
+    /// <summary>
+    /// Start on a specific monitor (uses PreferredMonitor setting).
+    /// </summary>
+    SpecificMonitor
+}
+
+/// <summary>
+/// Saved window position and state.
+/// </summary>
+public class WindowSettings
+{
+    /// <summary>
+    /// Window left position.
+    /// </summary>
+    public double Left { get; set; }
+
+    /// <summary>
+    /// Window top position.
+    /// </summary>
+    public double Top { get; set; }
+
+    /// <summary>
+    /// Window width.
+    /// </summary>
+    public double Width { get; set; }
+
+    /// <summary>
+    /// Window height.
+    /// </summary>
+    public double Height { get; set; }
+
+    /// <summary>
+    /// Whether window was maximized.
+    /// </summary>
+    public bool IsMaximized { get; set; }
+
+    /// <summary>
+    /// Monitor device name where window was displayed.
+    /// </summary>
+    public string MonitorDeviceName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Theme mode options for the application.
+/// </summary>
+public enum ThemeMode
+{
+    /// <summary>
+    /// Follow Windows system theme (light or dark).
+    /// </summary>
+    WindowsSystem,
+
+    /// <summary>
+    /// Light theme.
+    /// </summary>
+    Light,
+
+    /// <summary>
+    /// Dark theme.
+    /// </summary>
+    Dark,
+
+    /// <summary>
+    /// Iconic CRT green terminal theme (default).
+    /// </summary>
+    CrtGreen
+}
+
+/// <summary>
+/// Accent color mode options for the application.
+/// </summary>
+public enum AccentColorMode
+{
+    /// <summary>
+    /// Use iconic CRT green color.
+    /// </summary>
+    CrtGreen,
+
+    /// <summary>
+    /// Follow Windows system accent color (default).
+    /// </summary>
+    System,
+
+    /// <summary>
+    /// Use custom user-defined color.
+    /// </summary>
+    Custom
 }

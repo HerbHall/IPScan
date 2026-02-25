@@ -173,8 +173,15 @@ public class DeviceManager : IDeviceManager
         var newCount = 0;
         var updatedCount = 0;
 
+        // Defensive null check - discoveredDevices parameter may be null
+        if (discoveredDevices == null)
+            return (0, 0);
+
         foreach (var discovered in discoveredDevices)
         {
+            // Skip null discovered devices
+            if (discovered == null || string.IsNullOrEmpty(discovered.IpAddress))
+                continue;
             var existing = await _deviceRepository.GetByIpAddressAsync(discovered.IpAddress, cancellationToken);
 
             if (existing != null)
@@ -220,12 +227,17 @@ public class DeviceManager : IDeviceManager
 
     private async Task MarkOfflineDevicesAsync(List<DiscoveredDevice> discoveredDevices, CancellationToken cancellationToken)
     {
-        var discoveredIps = discoveredDevices.Select(d => d.IpAddress).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Defensive null check - discoveredDevices parameter may be null
+        if (discoveredDevices == null)
+            return;
+
+        var discoveredIps = discoveredDevices.Select(d => d?.IpAddress).Where(ip => ip != null).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var allDevices = await GetAllDevicesAsync(cancellationToken);
 
-        foreach (var device in allDevices)
+        // Take a copy to avoid collection modified exception when UpsertAsync modifies the cached list
+        foreach (var device in allDevices?.ToList() ?? new List<Device>())
         {
-            if (!discoveredIps.Contains(device.IpAddress))
+            if (device != null && !string.IsNullOrEmpty(device.IpAddress) && !discoveredIps.Contains(device.IpAddress))
             {
                 device.IsOnline = false;
                 device.ConsecutiveMissedScans++;

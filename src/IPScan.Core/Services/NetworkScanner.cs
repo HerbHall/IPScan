@@ -203,8 +203,8 @@ public class NetworkScanner : INetworkScanner
         try
         {
             var hostEntry = await Dns.GetHostEntryAsync(address.ToString()).WaitAsync(cancellationToken);
-            // Only return hostname if it's different from the IP (indicates real resolution)
-            if (hostEntry.HostName != address.ToString())
+            // Defensive null check - GetHostEntryAsync may return null HostName
+            if (hostEntry != null && !string.IsNullOrEmpty(hostEntry.HostName) && hostEntry.HostName != address.ToString())
             {
                 return hostEntry.HostName;
             }

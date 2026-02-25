@@ -1,0 +1,187 @@
+<Window x:Class="IPScan.GUI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:IPScan.GUI.Controls"
+        mc:Ignorable="d"
+        Title="Settings - IPScan"
+        Height="650" Width="500"
+        MinHeight="550" MinWidth="450"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <!-- Theme colors - inherit from parent or use defaults -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F3F3F3"/>
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#0078D4"/>
+        <SolidColorBrush x:Key="TitleBrush" Color="#1A1A1A"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#333333"/>
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#666666"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Application Settings" FontSize="20" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TitleBrush}" Margin="0,0,0,20"/>
+
+        <!-- Settings Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Scanning Section -->
+                <TextBlock Text="Scanning" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TitleBrush}" Margin="0,0,0,10"/>
+                <Border Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,0,20">
+                    <StackPanel>
+                        <CheckBox x:Name="ScanOnStartupCheckBox" Content="Scan network on startup"
+                                  Margin="0,0,0,10"/>
+
+                        <Label Content="Scan timeout (ms):" Margin="0,5,0,5"/>
+                        <TextBox x:Name="ScanTimeoutTextBox" Text="1000" Width="100" HorizontalAlignment="Left"/>
+
+                        <Label Content="Max concurrent scans:" Margin="0,10,0,5"/>
+                        <TextBox x:Name="MaxConcurrentTextBox" Text="100" Width="100" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Device Management Section -->
+                <TextBlock Text="Device Management" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TitleBrush}" Margin="0,0,0,10"/>
+                <Border Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,0,20">
+                    <StackPanel>
+                        <CheckBox x:Name="ShowOfflineCheckBox" Content="Show offline devices by default"
+                                  Margin="0,0,0,10"/>
+
+                        <CheckBox x:Name="AutoRemoveCheckBox" Content="Auto-remove devices after consecutive missed scans"
+                                  Margin="0,0,0,10"/>
+
+                        <Label Content="Missed scans before removal:" Margin="0,5,0,5"/>
+                        <TextBox x:Name="MissedScansTextBox" Text="5" Width="100" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Window Behavior Section -->
+                <TextBlock Text="Window Behavior" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TitleBrush}" Margin="0,0,0,10"/>
+                <Border Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,0,20">
+                    <StackPanel>
+                        <Label Content="Startup mode:" Margin="0,0,0,5"/>
+                        <ComboBox x:Name="WindowStartupComboBox" Width="250" HorizontalAlignment="Left" Margin="0,0,0,10">
+                            <ComboBoxItem Content="Remember last position" Tag="RememberLast" IsSelected="True"/>
+                            <ComboBoxItem Content="Always maximized" Tag="AlwaysMaximized"/>
+                            <ComboBoxItem Content="Default centered" Tag="DefaultCentered"/>
+                            <ComboBoxItem Content="Specific monitor" Tag="SpecificMonitor"/>
+                        </ComboBox>
+
+                        <Label Content="Splash screen timeout (seconds):" Margin="0,5,0,5"/>
+                        <TextBox x:Name="SplashTimeoutTextBox" Text="5" Width="100" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Appearance Section -->
+                <TextBlock Text="Appearance" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TitleBrush}" Margin="0,0,0,10"/>
+                <Border Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,0,20">
+                    <StackPanel>
+                        <Label Content="Theme:" Margin="0,0,0,5"/>
+                        <ComboBox x:Name="ThemeModeComboBox" Width="250" HorizontalAlignment="Left" Margin="0,0,0,5"
+                                  SelectionChanged="ThemeModeComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Windows System" Tag="WindowsSystem"/>
+                            <ComboBoxItem Content="Light" Tag="Light"/>
+                            <ComboBoxItem Content="Dark" Tag="Dark"/>
+                            <ComboBoxItem Content="CRT Green Terminal (Default)" Tag="CrtGreen" IsSelected="True"/>
+                        </ComboBox>
+                        <TextBlock Text="The CRT Green Terminal theme provides an authentic 1970s-80s monochrome terminal display with bright green phosphor glow on black background."
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   FontSize="11" TextWrapping="Wrap" Margin="0,5,0,15"/>
+
+                        <Label Content="Accent Color:" Margin="0,10,0,5"/>
+                        <ComboBox x:Name="AccentColorModeComboBox" Width="250" HorizontalAlignment="Left" Margin="0,0,0,10"
+                                  SelectionChanged="AccentColorModeComboBox_SelectionChanged">
+                            <ComboBoxItem Content="CRT Green" Tag="CrtGreen"/>
+                            <ComboBoxItem Content="Windows System (Default)" Tag="System" IsSelected="True"/>
+                            <ComboBoxItem Content="Custom Color" Tag="Custom"/>
+                        </ComboBox>
+
+                        <!-- Color Picker (shown when Custom Color is selected) -->
+                        <Border x:Name="ColorPickerBorder" Visibility="Collapsed" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Custom Accent Color:" Margin="0,0,0,10"
+                                           Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
+                                <local:ColorPickerControl x:Name="CustomColorPicker"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Network Section -->
+                <TextBlock Text="Network Configuration" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TitleBrush}" Margin="0,0,0,10"/>
+                <Border Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="15" Margin="0,0,0,20">
+                    <StackPanel>
+                        <RadioButton x:Name="AutoSubnetRadio" Content="Auto-detect subnet" IsChecked="True"
+                                     GroupName="SubnetGroup" Margin="0,0,0,10"/>
+                        <RadioButton x:Name="CustomSubnetRadio" Content="Custom subnet (CIDR notation):"
+                                     GroupName="SubnetGroup" Margin="0,0,0,5"/>
+                        <TextBox x:Name="CustomSubnetTextBox" Text="" Width="200" HorizontalAlignment="Left"
+                                 IsEnabled="{Binding IsChecked, ElementName=CustomSubnetRadio}"
+                                 Margin="20,0,0,0"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="1" Content="Save" Width="80" Margin="0,0,10,0"
+                    Click="Save_Click" IsDefault="True"
+                    Background="{DynamicResource AccentBrush}" Foreground="White"
+                    Padding="12,6" BorderThickness="0" Cursor="Hand"/>
+            <Button Grid.Column="2" Content="Cancel" Width="80"
+                    Click="Cancel_Click" IsCancel="True"
+                    Padding="12,6" Cursor="Hand"/>
+        </Grid>
+    </Grid>
+</Window>
