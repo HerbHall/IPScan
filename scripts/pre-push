@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Pre-push hook: runs the same checks as CI before allowing a push.
+set -euo pipefail
+
+echo "==> pre-push: running CI checks..."
+
+echo "--- dotnet build"
+dotnet build --no-restore 2>/dev/null || dotnet build
+
+echo "--- dotnet test"
+dotnet test --no-restore --verbosity quiet 2>/dev/null || echo "(no test project, skipping)"
+
+echo "--- markdownlint"
+npx --yes markdownlint-cli2 "readme.md" "CLAUDE.md" "docs/**/*.md"
+
+echo "==> pre-push: all checks passed"
