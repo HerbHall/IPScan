@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          include-prerelease: true
+
+      - run: dotnet restore
+
+      - run: dotnet build --no-restore
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          include-prerelease: true
+
+      - run: |
+          dotnet restore tests/IPScan.Core.Tests/IPScan.Core.Tests.csproj
+          dotnet restore tests/IPScan.CLI.Tests/IPScan.CLI.Tests.csproj
+
+      - run: |
+          dotnet test tests/IPScan.Core.Tests/IPScan.Core.Tests.csproj --no-restore --verbosity normal
+          dotnet test tests/IPScan.CLI.Tests/IPScan.CLI.Tests.csproj --no-restore --verbosity normal
+
+  markdown:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: |
+            readme.md
+            CLAUDE.md
+            docs/**/*.md

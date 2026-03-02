@@ -87,7 +87,7 @@ Access help documentation via **File > Help** in the menu.
 
 Configuration and data files are stored in:
 
-```
+```text
 %APPDATA%\IPScan\
 ├── devices.json      # Saved device information
 └── settings.json     # Application settings
@@ -122,7 +122,7 @@ dotnet publish -c Release
 
 ### Project Structure
 
-```
+```text
 IPScan/
 ├── src/
 │   ├── IPScan.Core/     # Shared business logic
