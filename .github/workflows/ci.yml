@@ -44,7 +44,9 @@ jobs:
           dotnet-version: '10.0.x'
           include-prerelease: true
 
-      - run: dotnet restore
+      - run: |
+          dotnet restore tests/IPScan.Core.Tests/IPScan.Core.Tests.csproj
+          dotnet restore tests/IPScan.CLI.Tests/IPScan.CLI.Tests.csproj
 
       - run: |
           dotnet test tests/IPScan.Core.Tests/IPScan.Core.Tests.csproj --no-restore --verbosity normal
