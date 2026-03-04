@@ -22,7 +22,8 @@
 **Decision**: Hybrid approach starting with primary interface
 
 **Implementation**:
-```
+
+```text
 1. Auto-detect and scan primary interface (with default gateway) first
 2. Exclude VPN interfaces by default (identify but don't scan)
 3. After primary scan completes, IF other non-VPN interfaces exist:
@@ -33,6 +34,7 @@
 ```
 
 **Key Files**:
+
 - `NetworkInterfaceService.cs`: Interface detection and VPN filtering
 - `NetworkScanner.cs`: Scan workflow with user prompts
 - Settings UI: Interface selection options
@@ -46,7 +48,8 @@
 **Decision**: Hybrid memory-only mode with user choice
 
 **Implementation**:
-```
+
+```text
 On startup:
 1. Try to create/access %APPDATA%\IPScan
 2. If it fails (permissions, disk full, network drive):
@@ -59,6 +62,7 @@ On startup:
 ```
 
 **Key Files**:
+
 - `JsonSettingsService.cs`: Fallback logic
 - `JsonDeviceRepository.cs`: Memory-only mode support
 - GUI: Warning banner component
@@ -72,7 +76,8 @@ On startup:
 **Decision**: Always require administrator elevation
 
 **Implementation**:
-```
+
+```text
 1. Add requireAdministrator to app.manifest for both GUI and CLI
 2. Application always runs elevated
 3. No graceful degradation - full network capabilities always available
@@ -81,6 +86,7 @@ On startup:
 **Rationale**: "Get it out of the way up front" - simplifies development, enables all features
 
 **Key Files**:
+
 - `app.manifest` (GUI and CLI projects)
 - Documentation: explain why admin is required
 
@@ -91,7 +97,8 @@ On startup:
 **Decision**: Background queue with priority for new devices
 
 **Implementation**:
-```
+
+```text
 Scan workflow:
 1. Ping sweep of subnet (fast, completes in seconds)
 2. Display discovered devices immediately
@@ -108,6 +115,7 @@ Settings:
 ```
 
 **Key Files**:
+
 - `NetworkScanner.cs`: Background queue implementation
 - `DeviceManager.cs`: Priority logic
 - GUI: Progress indicators
@@ -121,14 +129,16 @@ Settings:
 **Decision**: Single instance mode initially, file locking later
 
 **Phase 1 Implementation**:
-```
+
+```text
 1. Use named Mutex to prevent multiple instances
 2. Show error dialog: "IPScan is already running"
 3. Option to bring existing window to front
 ```
 
 **Phase 2+ Enhancement**:
-```
+
+```text
 1. Implement file-based locking with FileStream
 2. Allow CLI and GUI to run simultaneously
 3. Handle lock conflicts gracefully
@@ -144,7 +154,8 @@ Settings:
 **Decision**: IPv4 only for MVP
 
 **Implementation**:
-```
+
+```text
 1. Device model stores single IPv4 address (string)
 2. Network scanner uses IPv4 only
 3. Add TODO comments for IPv6 support in Phase 2+
@@ -161,7 +172,8 @@ Settings:
 **Decision**: Visual highlight by default, user-configurable enhancements
 
 **Implementation**:
-```
+
+```text
 Default behavior (Phase 1):
 - New devices shown in bold or highlighted color
 - Fade to normal after first selection/view
@@ -184,7 +196,8 @@ Phase 2 Settings:
 **Decision**: Manual by default, fully user-configurable
 
 **Settings Implementation** (Phase 2):
-```
+
+```text
 Rescan Mode:
 - Manual only (default - user clicks "Scan" button)
 - Periodic automatic (every N minutes: 5, 10, 15, 30, 60)
@@ -203,8 +216,10 @@ Default: Manual only
 **Decision**: Standard window by default, optional tray in Phase 2/3
 
 **Phase 1**: Normal window, minimize to taskbar
+
 **Phase 2/3 Settings**:
-```
+
+```text
 - No tray icon (default)
 - Minimize to tray (background daemon style)
 - Always show tray (with status indicator)
@@ -219,7 +234,8 @@ Default: Manual only
 **Decision**: Plain text for MVP, add JSON in Phase 1
 
 **Implementation**:
-```
+
+```text
 Phase 1 MVP:
 - ipscan list          # Human-readable table
 - ipscan show <id>     # Formatted device details
@@ -240,7 +256,8 @@ Phase 2 (if requested):
 **Decision**: Simple list for MVP (Class C subnet), hierarchical view for Phase 2
 
 **Implementation**:
-```
+
+```text
 Phase 1 (MVP):
 - Simple WPF list, loads all devices
 - Optimized for home networks (10-50 devices)
@@ -264,20 +281,23 @@ Phase 2:
 **Decision**: Bundled database with optional manual updates, auto-update in Phase 2
 
 **Phase 1**:
-```
+
+```text
 - Bundle OUI database with installer
 - Include in application resources
 ```
 
 **Phase 1 Enhancement**:
-```
+
+```text
 - Settings: "Update MAC Database" button
 - Download latest from IEEE
 - Manual update only
 ```
 
 **Phase 2**:
-```
+
+```text
 - Settings: Enable auto-update checkbox
 - Check frequency: weekly/monthly
 - Background download and update
@@ -290,7 +310,8 @@ Phase 2:
 **Decision**: Keep forever by default, optional archival
 
 **Settings Implementation**:
-```
+
+```text
 Retention Policy:
 - Keep all devices (default)
 - Archive devices offline for:
@@ -312,7 +333,8 @@ Archived Device Behavior:
 **Decision**: First-run disclaimer + splash screen reminder
 
 **Implementation**:
-```
+
+```text
 First Launch:
 - Dialog: "Only scan networks you own or have permission to scan"
 - "I understand" checkbox
@@ -332,7 +354,8 @@ Every Launch (Splash Screen):
 **Decision**: JSON standard, user-selectable formats in configuration
 
 **Implementation**:
-```
+
+```text
 Phase 2 Export Feature:
 - Default: JSON (already the storage format)
 - Settings: "Export Format" dropdown
@@ -392,48 +415,48 @@ Export options:
 
 ### Phase 1 Enhancements (After Core Works)
 
-9. **CLI JSON Output** (Q3.4)
+1. **CLI JSON Output** (Q3.4)
    - Add --format json flag
    - Scriptable output
 
-10. **Multi-Interface Prompt** (Q1.1)
-    - Detect additional interfaces
-    - Prompt user after primary scan
-    - Interface selection dialog
+2. **Multi-Interface Prompt** (Q1.1)
+   - Detect additional interfaces
+   - Prompt user after primary scan
+   - Interface selection dialog
 
-11. **Ethics Warning** (Q4.3)
-    - First-run disclaimer dialog
-    - Splash screen reminder text
+3. **Ethics Warning** (Q4.3)
+   - First-run disclaimer dialog
+   - Splash screen reminder text
 
 ### Phase 2 Features (After MVP Release)
 
-12. **Notification System** (Q3.1)
-    - Visual highlights for new devices
-    - Settings for toast/sound notifications
+1. **Notification System** (Q3.1)
+   - Visual highlights for new devices
+   - Settings for toast/sound notifications
 
-13. **Background Scanning** (Q3.2)
-    - Periodic rescan timer
-    - Network change detection
-    - Configurable intervals
+2. **Background Scanning** (Q3.2)
+   - Periodic rescan timer
+   - Network change detection
+   - Configurable intervals
 
-14. **File Locking** (Q2.3)
-    - Replace single-instance with file locks
-    - Enable concurrent CLI/GUI access
+3. **File Locking** (Q2.3)
+   - Replace single-instance with file locks
+   - Enable concurrent CLI/GUI access
 
-15. **Hierarchical Device View** (Q3.5)
-    - Group by subnet/VLAN
-    - Support multiple networks
+4. **Hierarchical Device View** (Q3.5)
+   - Group by subnet/VLAN
+   - Support multiple networks
 
-16. **MAC Database Updates** (Q4.1)
-    - Manual update button
-    - Optional auto-update
+5. **MAC Database Updates** (Q4.1)
+   - Manual update button
+   - Optional auto-update
 
 ### Phase 3+ Features (Future)
 
-17. **System Tray** (Q3.3)
-18. **Data Retention/Archive** (Q4.2)
-19. **Export Formats** (Q4.4)
-20. **IPv6 Support** (Q2.4)
+1. **System Tray** (Q3.3)
+2. **Data Retention/Archive** (Q4.2)
+3. **Export Formats** (Q4.4)
+4. **IPv6 Support** (Q2.4)
 
 ---
 
@@ -462,11 +485,11 @@ Export options:
 
 ## Next Actions for Development
 
-1. ✅ All blocker questions answered - development can proceed
-2. ✅ Phase 1 scope defined - Full MVP with categorization
-3. ⏭️ Implement items 1-8 from Priority Order (above)
-4. ⏭️ Test with admin elevation on real networks
-5. ⏭️ Iterate on UX based on actual usage
+1. All blocker questions answered - development can proceed
+2. Phase 1 scope defined - Full MVP with categorization
+3. Implement items 1-8 from Priority Order (above)
+4. Test with admin elevation on real networks
+5. Iterate on UX based on actual usage
 
 ---
 

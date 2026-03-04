@@ -13,7 +13,7 @@ test: ## Run tests (scoped to cross-platform projects)
 	dotnet test tests/IPScan.CLI.Tests/IPScan.CLI.Tests.csproj --verbosity normal
 
 lint-md: ## Lint markdown files
-	npx --yes markdownlint-cli2 "readme.md" "CLAUDE.md" "docs/**/*.md"
+	npx --yes markdownlint-cli2 "readme.md" "CLAUDE.md" "DECISIONS.md" "docs/**/*.md"
 
 ci: build test lint-md ## Run full CI pipeline (build + test + lint)
 
