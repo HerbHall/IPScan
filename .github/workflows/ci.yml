@@ -63,4 +63,5 @@ jobs:
           globs: |
             readme.md
             CLAUDE.md
+            DECISIONS.md
             docs/**/*.md
