@@ -1,0 +1,70 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-changes:
+    name: Check for Changes
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for commits since last nightly
+        id: check
+        run: |
+          RECENT=$(git log --since="24 hours ago" --oneline origin/main | head -1)
+          if [ -n "$RECENT" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changes found since last nightly"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No changes in last 24 hours, skipping build"
+          fi
+
+  build:
+    name: Build
+    needs: check-changes
+    if: needs.check-changes.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          include-prerelease: true
+
+      - run: dotnet restore
+
+      - run: dotnet build --no-restore
+
+  test:
+    name: Test
+    needs: check-changes
+    if: needs.check-changes.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          include-prerelease: true
+
+      - run: |
+          dotnet restore tests/IPScan.Core.Tests/IPScan.Core.Tests.csproj
+          dotnet restore tests/IPScan.CLI.Tests/IPScan.CLI.Tests.csproj
+
+      - run: |
+          dotnet test tests/IPScan.Core.Tests/IPScan.Core.Tests.csproj --no-restore --verbosity normal
+          dotnet test tests/IPScan.CLI.Tests/IPScan.CLI.Tests.csproj --no-restore --verbosity normal
