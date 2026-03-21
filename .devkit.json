@@ -1,0 +1,9 @@
+{
+  "project": "IPScan",
+  "tier": "full",
+  "profile": "dotnet",
+  "family": "Personal",
+  "managed_by": null,
+  "created": "2026-03-21",
+  "devkit_version": "2.7.1"
+}
